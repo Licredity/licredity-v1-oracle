@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {console} from "forge-std/console.sol";
-
 library FixedPointMath {
     /// @dev Returns `exp(x)`, denominated in `WAD`. And x must be minusive.
     /// Credit to Remco Bloemen under MIT license: https://2π.com/22/exp-ln
@@ -57,7 +55,7 @@ library FixedPointMath {
                 // No scaling is necessary because p is already `2**96` too large.
                 r := sdiv(p, q)
             }
-            console.log("k: ", k);
+
             // r should be in the range `(0.09, 0.25) * 2**96`.
 
             // We now need to multiply r by:
