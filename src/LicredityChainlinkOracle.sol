@@ -47,12 +47,12 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
     function peek(address asset, uint256 amount) external view returns (uint256 debtTokenAmount) {}
 
     function updateDebtTokenPrice(uint160 sqrtPriceX96) external onlyLicredity {
-        // TODO: aplha in X96
         // alpha = e ^ -(block.timestamp - lastUpdate)
-        int256 power = -(int256(block.timestamp) - int256(lastUpdate)) * 1e18 / 600;
+        int256 power = ((int256(lastUpdate) - int256(block.timestamp)) << 96) / 600;
         uint256 alphaX96 = uint256(power.expWadX96());
 
         uint256 priceX96 = (uint256(sqrtPriceX96) * uint256(sqrtPriceX96)) >> 96;
+
         // If priceX96 > lastPriceX96 * (1 + 0.015625), priceX96 = lastPriceX96 * (1 + 0.015625)
         // If priceX96 < lastPriceX96 * (1 - 0.015625), priceX96 = lastPriceX96 * (1 - 0.015625)
         // 0.015625 = 1 / (2 ** 6)

@@ -2,28 +2,28 @@
 pragma solidity ^0.8.0;
 
 library FixedPointMath {
-    /// @dev Returns `exp(x)`, denominated in `WAD`. And x must be minusive.
+    /// @dev Returns `exp(x)` in `X96`, denominated in `X96`. And x must be minusive.
     /// Credit to Remco Bloemen under MIT license: https://2π.com/22/exp-ln
     /// Note: This function is an approximation. Monotonically increasing.
     function expWadX96(int256 x) internal pure returns (int256 r) {
         unchecked {
             // When the result is less than 0.5 we return zero.
-            // This happens when `x <= (log(1e-18) * 1e18) ~ -4.15e19`.
-            if (x <= -41446531673892822313) return r;
+            // This happens when `x <= (log(1e-18) * 2 ** 96)`.
+            if (x <= -3283732547111784740982922149888) return r;
 
-            assembly ("memory-safe") {
-                // When the result is greater than `(2**255 - 1) / 1e18` we can not represent it as
-                // an int. This happens when `x >= floor(log((2**255 - 1) / 1e18) * 1e18) ≈ 135`.
-                if iszero(slt(x, 135305999368893231589)) {
-                    mstore(0x00, 0xa37bfec9) // `ExpOverflow()`.
-                    revert(0x1c, 0x04)
-                }
-            }
+            // assembly ("memory-safe") {
+            //     // When the result is greater than `(2**255 - 1) / 1e18` we can not represent it as
+            //     // an int. This happens when `x >= floor(log((2**255 - 1) / 1e18) * 1e18) ≈ 135`.
+            //     if iszero(slt(x, 135305999368893231589)) {
+            //         mstore(0x00, 0xa37bfec9) // `ExpOverflow()`.
+            //         revert(0x1c, 0x04)
+            //     }
+            // }
 
             // `x` is now in the range `(-42, 136) * 1e18`. Convert to `(-42, 136) * 2**96`
             // for more intermediate precision and a binary basis. This base conversion
             // is a multiplication by 1e18 / 2**96 = 5**18 / 2**78.
-            x = (x << 78) / 5 ** 18;
+            // x = (x << 78) / 5 ** 18;
 
             // Reduce range of x to (-½ ln 2, ½ ln 2) * 2**96 by factoring out powers
             // of two such that exp(x) = exp(x') * 2**k, where k is an integer.

@@ -22,4 +22,10 @@ contract LicredityChainlinkOracleTest is Test {
         oracle.updateDebtTokenPrice(79843750678802117044226490368); // update price = 1.0156
         assertApproxEqAbsDecimal(oracle.emaPrice(), 1000000708238904192, 1e4, 18);
     }
+
+    function test_updateDebtTokenPrice_normal() public {
+        skip(42);
+        oracle.updateDebtTokenPrice(79346915759800263220867891200); // update price = 1.003
+        assertApproxEqAbsDecimal(oracle.emaPrice(), 1002797181459717632, 1e4, 18);
+    }
 }
