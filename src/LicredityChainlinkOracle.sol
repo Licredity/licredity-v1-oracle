@@ -4,12 +4,14 @@ pragma solidity =0.8.30;
 import {ILicredityChainlinkOracle} from "./interfaces/ILicredityChainlinkOracle.sol";
 import {IERC20Minimal} from "./interfaces/IERC20Minimal.sol";
 import {AggregatorV3Interface} from "./interfaces/AggregatorV3Interface.sol";
+import {ChainlinkDataFeedLib} from "./libraries/ChainlinkDataFeedLib.sol";
 import {FeedsConfig} from "./libraries/FeedsConfig.sol";
 import {FixedPointMath} from "./libraries/FixedPointMath.sol";
 
 contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
     using FixedPointMath for int256;
     using FixedPointMath for uint256;
+    using ChainlinkDataFeedLib for AggregatorV3Interface;
 
     error NotLicredity();
     error NotOwner();
@@ -46,7 +48,20 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
         owner = newOwner;
     }
 
-    function peek(address asset, uint256 amount) external view returns (uint256 debtTokenAmount) {}
+    /// @notice Returns the number of debt tokens that can be exchanged for the assets.
+    function peek(address asset, uint256 amount) external view returns (uint256 debtTokenAmount) {
+        if (asset == licredity) {
+            debtTokenAmount = amount;
+        } else {
+            FeedsConfig memory config = feeds[asset];
+
+            // If asset is token, need to set both baseFeed and quoteFeed of token to zero addresses
+            // (scaleFactor * amount) * baseFeed * emaPrice / quoteFeed
+            debtTokenAmount = (config.scaleFactor * amount).fullMulDiv(
+                emaPrice * config.baseFeed.getPrice(), config.quoteFeed.getPrice() * 1e36
+            );
+        }
+    }
 
     function updateDebtTokenPrice(uint160 sqrtPriceX96) external onlyLicredity {
         // alpha = e ^ -(block.timestamp - lastUpdate)
@@ -73,8 +88,13 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
         external
         onlyOwner
     {
-        uint8 debtTokenDecimals = IERC20Minimal(asset).decimals();
-        feeds[asset] = FeedsConfig({debtTokenDecimals: debtTokenDecimals, baseFeed: baseFeed, quoteFeed: quoteFeed});
+        uint8 assetTokenDecimals = IERC20Minimal(asset).decimals();
+        uint8 debtTokenDecimals = IERC20Minimal(licredity).decimals();
+
+        uint256 scaleFactor =
+            10 ** (18 + quoteFeed.getDecimals() + debtTokenDecimals - baseFeed.getDecimals() - assetTokenDecimals);
+
+        feeds[asset] = FeedsConfig({scaleFactor: scaleFactor, baseFeed: baseFeed, quoteFeed: quoteFeed});
 
         emit FeedsUpdated(asset, baseFeed, quoteFeed);
     }
