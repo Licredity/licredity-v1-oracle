@@ -25,5 +25,6 @@ interface ILicredityChainlinkOracle {
     /// @param baseFeed Base feed. Pass address zero if the price = 1
     /// @param quoteFeed Quote feed. Pass address zero if the price = 1
     /// @dev The implementation automatically multiplies the base fee calculation result by the token/debtToken price.
-    function updateFeeds(address asset, AggregatorV3Interface baseFeed, AggregatorV3Interface quoteFeed) external;
+    function updateFeedsConfig(address asset, AggregatorV3Interface baseFeed, AggregatorV3Interface quoteFeed)
+        external;
 }

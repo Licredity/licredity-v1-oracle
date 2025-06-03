@@ -2,7 +2,9 @@
 pragma solidity =0.8.30;
 
 import {ILicredityChainlinkOracle} from "./interfaces/ILicredityChainlinkOracle.sol";
-import {AggregatorV3Interface} from "./interfaces//AggregatorV3Interface.sol";
+import {IERC20Minimal} from "./interfaces/IERC20Minimal.sol";
+import {AggregatorV3Interface} from "./interfaces/AggregatorV3Interface.sol";
+import {FeedsConfig} from "./libraries/FeedsConfig.sol";
 import {FixedPointMath} from "./libraries/FixedPointMath.sol";
 
 contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
@@ -19,7 +21,7 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
     uint256 public emaPrice;
     uint256 public lastUpdate;
 
-    mapping(address => AggregatorV3Interface[]) public feeds;
+    mapping(address => FeedsConfig) public feeds;
 
     constructor(address licredity_, address owner_) {
         licredity = licredity_;
@@ -67,12 +69,12 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
         emaPrice = (emaPriceX96 * 1e18) >> 96;
     }
 
-    function updateFeeds(address asset, AggregatorV3Interface baseFeed, AggregatorV3Interface quoteFeed)
+    function updateFeedsConfig(address asset, AggregatorV3Interface baseFeed, AggregatorV3Interface quoteFeed)
         external
         onlyOwner
     {
-        feeds[asset][0] = baseFeed;
-        feeds[asset][1] = quoteFeed;
+        uint8 debtTokenDecimals = IERC20Minimal(asset).decimals();
+        feeds[asset] = FeedsConfig({debtTokenDecimals: debtTokenDecimals, baseFeed: baseFeed, quoteFeed: quoteFeed});
 
         emit FeedsUpdated(asset, baseFeed, quoteFeed);
     }
