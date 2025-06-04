@@ -22,8 +22,10 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
     address public owner;
 
     uint256 public lastPriceX96;
+    uint256 public currentPriceX96;
     uint256 public emaPrice;
-    uint256 public lastUpdate;
+    uint256 public lastUpdateTimeStamp;
+    uint256 public currentTimeStamp;
 
     mapping(Fungible => FeedsConfig) public feeds;
 
@@ -33,7 +35,7 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
 
         lastPriceX96 = 1 << 96;
         emaPrice = 1e18;
-        lastUpdate = block.timestamp;
+        lastUpdateTimeStamp = block.timestamp;
     }
 
     modifier onlyLicredity() {
@@ -65,9 +67,18 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
         }
     }
 
-    function updateDebtTokenPrice(uint160 sqrtPriceX96) external onlyLicredity {
-        // alpha = e ^ -(block.timestamp - lastUpdate)
-        int256 power = ((int256(lastUpdate) - int256(block.timestamp)) << 96) / 600;
+    function update() external onlyLicredity {
+        if (block.timestamp != currentTimeStamp) {
+            lastUpdateTimeStamp = currentTimeStamp;
+            currentTimeStamp = block.timestamp;
+            lastPriceX96 = currentPriceX96;
+        }
+        
+        // TODO: get sqrtPriceX96 from uniswap v4
+        uint160 sqrtPriceX96;
+
+        // alpha = e ^ -(block.timestamp - lastUpdateTimeStamp)
+        int256 power = ((int256(lastUpdateTimeStamp) - int256(block.timestamp)) << 96) / 600;
         uint256 alphaX96 = uint256(power.expWadX96());
 
         uint256 priceX96 = (uint256(sqrtPriceX96) * uint256(sqrtPriceX96)) >> 96;
@@ -82,7 +93,7 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
         uint256 emaPriceX96 = (alphaX96 * priceX96 + (0x1000000000000000000000000 - alphaX96) * lastPriceX96) >> 96;
 
         // Update lastPriceX96 and emaPrice
-        lastPriceX96 = priceX96;
+        currentPriceX96 = emaPriceX96;
         emaPrice = (emaPriceX96 * 1e18) >> 96;
     }
 

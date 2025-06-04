@@ -19,8 +19,7 @@ interface ILicredityChainlinkOracle {
     function quoteFungible(Fungible fungible, uint256 amount) external view returns (uint256 value);
 
     /// @notice Update the price of debt token based on EMA using the price from beforeSwap Hook
-    /// @param sqrtPriceX96 The sqrt price of the token/debtToken
-    function updateDebtTokenPrice(uint160 sqrtPriceX96) external;
+    function update() external;
 
     /// @notice Provides multiple oracle configurations for asset to debt token price calculations
     /// @param asset The address of the asset
