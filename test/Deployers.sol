@@ -12,7 +12,7 @@ contract Deployers is Test {
 
     ChainlinkOracleMock public ethUSD;
     ChainlinkOracleMock public btcETH;
-    
+
     function deployLicredity() public {
         licredity = new DecimalsMock();
         licredity.setDecimals(18);

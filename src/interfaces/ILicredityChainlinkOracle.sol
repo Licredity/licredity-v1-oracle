@@ -2,19 +2,21 @@
 pragma solidity >=0.8.0;
 
 import {AggregatorV3Interface} from "./AggregatorV3Interface.sol";
+import {Fungible} from "../types/Fungible.sol";
+import {NonFungible} from "../types/NonFungible.sol";
 
 interface ILicredityChainlinkOracle {
     /// @notice Event emitted when the new feeds are set
     /// @param asset The address of the asset
     /// @param baseFeed Base feed
     /// @param quoteFeed Quote feed
-    event FeedsUpdated(address indexed asset, AggregatorV3Interface baseFeed, AggregatorV3Interface quoteFeed);
+    event FeedsUpdated(Fungible indexed asset, AggregatorV3Interface baseFeed, AggregatorV3Interface quoteFeed);
 
-    /// @notice Returns the number of debt tokens that can be exchanged for the assets
-    /// @param asset The address of the asset
-    /// @param amount The amount of the asset
-    /// @return debtTokenAmount The number of debt tokens
-    function peek(address asset, uint256 amount) external view returns (uint256 debtTokenAmount);
+    /// @notice Function to get the value, in debt token terms, of some amount of fungible
+    /// @param fungible The fungible to quote
+    /// @param amount The amount of fungible to quote
+    /// @return value The value of the fungible in debt token terms
+    function quoteFungible(Fungible fungible, uint256 amount) external view returns (uint256 value);
 
     /// @notice Update the price of debt token based on EMA using the price from beforeSwap Hook
     /// @param sqrtPriceX96 The sqrt price of the token/debtToken
@@ -25,6 +27,6 @@ interface ILicredityChainlinkOracle {
     /// @param baseFeed Base feed. Pass address zero if the price = 1
     /// @param quoteFeed Quote feed. Pass address zero if the price = 1
     /// @dev The implementation automatically multiplies the base fee calculation result by the token/debtToken price.
-    function updateFeedsConfig(address asset, AggregatorV3Interface baseFeed, AggregatorV3Interface quoteFeed)
+    function updateFeedsConfig(Fungible asset, AggregatorV3Interface baseFeed, AggregatorV3Interface quoteFeed)
         external;
 }
