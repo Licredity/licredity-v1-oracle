@@ -9,14 +9,21 @@ import {NonFungible} from "./types/NonFungible.sol";
 import {ChainlinkDataFeedLib} from "./libraries/ChainlinkDataFeedLib.sol";
 import {FeedsConfig} from "./libraries/FeedsConfig.sol";
 import {FixedPointMath} from "./libraries/FixedPointMath.sol";
+import {PoolId} from "v4-core/types/PoolId.sol";
+import {IPoolManager} from "v4-core/interfaces/IPoolManager.sol";
+import {StateLibrary} from "v4-core/libraries/StateLibrary.sol";
 
 contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
     using FixedPointMath for int256;
     using FixedPointMath for uint256;
     using ChainlinkDataFeedLib for AggregatorV3Interface;
+    using StateLibrary for IPoolManager;
 
     error NotLicredity();
     error NotOwner();
+
+    PoolId public poolId;
+    IPoolManager immutable uniswapV4Manager;
 
     address public licredity;
     address public owner;
@@ -29,13 +36,18 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
 
     mapping(Fungible => FeedsConfig) public feeds;
 
-    constructor(address licredity_, address owner_) {
+    constructor(address licredity_, address owner_, IPoolManager uniswapV4_, PoolId poolId_) {
         licredity = licredity_;
         owner = owner_;
+        uniswapV4Manager = uniswapV4_;
+        poolId = poolId_;
 
+        lastUpdateTimeStamp = block.timestamp;
+        currentTimeStamp = block.timestamp;
+
+        currentPriceX96 = 1 << 96;
         lastPriceX96 = 1 << 96;
         emaPrice = 1e18;
-        lastUpdateTimeStamp = block.timestamp;
     }
 
     modifier onlyLicredity() {
@@ -73,9 +85,9 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
             currentTimeStamp = block.timestamp;
             lastPriceX96 = currentPriceX96;
         }
-        
+
         // TODO: get sqrtPriceX96 from uniswap v4
-        uint160 sqrtPriceX96;
+        (uint160 sqrtPriceX96,,,) = uniswapV4Manager.getSlot0(poolId);
 
         // alpha = e ^ -(block.timestamp - lastUpdateTimeStamp)
         int256 power = ((int256(lastUpdateTimeStamp) - int256(block.timestamp)) << 96) / 600;
