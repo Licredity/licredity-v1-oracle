@@ -3,9 +3,11 @@ pragma solidity =0.8.30;
 
 import {AggregatorV3Interface} from "src/interfaces/AggregatorV3Interface.sol";
 import {LicredityChainlinkOracle} from "src/LicredityChainlinkOracle.sol";
+import {Fungible} from "src/types/Fungible.sol";
 import {Deployers} from "./Deployers.sol";
 
 contract LicredityChainlinkOracleTest is Deployers {
+    Fungible public licredityFungible;
     LicredityChainlinkOracle public oracle;
 
     function setUp() public {
@@ -13,6 +15,7 @@ contract LicredityChainlinkOracleTest is Deployers {
         deployMockChainlinkOracle();
 
         oracle = new LicredityChainlinkOracle(address(licredity), address(this));
+        licredityFungible = Fungible.wrap(address(licredity));
     }
 
     modifier asLicredity() {
@@ -39,21 +42,21 @@ contract LicredityChainlinkOracleTest is Deployers {
         assertApproxEqAbsDecimal(oracle.emaPrice(), 1002797181459717632, 1e4, 18);
     }
 
-    function test_peekDebtToken(uint256 amount) public view {
-        assertEq(oracle.peek(address(licredity), amount), amount);
+    function test_quoteFungibleDebtToken(uint256 amount) public view {
+        assertEq(oracle.quoteFungible(licredityFungible, amount), amount);
     }
 
-    function test_peekEthUsd() public {
-        oracle.updateFeedsConfig(address(usd), AggregatorV3Interface(address(0)), ethUSD);
+    function test_quoteFungibleEthUsd() public {
+        oracle.updateFeedsConfig(Fungible.wrap(address(usd)), AggregatorV3Interface(address(0)), ethUSD);
 
-        uint256 peekAmount = oracle.peek(address(usd), 262341076816);
-        assertEq(peekAmount, 1 ether);
+        uint256 quoteFungibleAmount = oracle.quoteFungible(Fungible.wrap(address(usd)), 262341076816);
+        assertEq(quoteFungibleAmount, 1 ether);
     }
 
-    function test_peekBtcEth() public {
-        oracle.updateFeedsConfig(address(btc), btcETH, AggregatorV3Interface(address(0)));
+    function test_quoteFungibleBtcEth() public {
+        oracle.updateFeedsConfig(Fungible.wrap(address(btc)), btcETH, AggregatorV3Interface(address(0)));
 
-        uint256 peekAmount = oracle.peek(address(btc), 1e8);
-        assertEq(peekAmount, 40446685000000000000);
+        uint256 quoteFungibleAmount = oracle.quoteFungible(Fungible.wrap(address(btc)), 1e8);
+        assertEq(quoteFungibleAmount, 40446685000000000000);
     }
 }

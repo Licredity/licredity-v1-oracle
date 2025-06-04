@@ -4,6 +4,8 @@ pragma solidity =0.8.30;
 import {ILicredityChainlinkOracle} from "./interfaces/ILicredityChainlinkOracle.sol";
 import {IERC20Minimal} from "./interfaces/IERC20Minimal.sol";
 import {AggregatorV3Interface} from "./interfaces/AggregatorV3Interface.sol";
+import {Fungible} from "./types/Fungible.sol";
+import {NonFungible} from "./types/NonFungible.sol";
 import {ChainlinkDataFeedLib} from "./libraries/ChainlinkDataFeedLib.sol";
 import {FeedsConfig} from "./libraries/FeedsConfig.sol";
 import {FixedPointMath} from "./libraries/FixedPointMath.sol";
@@ -23,7 +25,7 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
     uint256 public emaPrice;
     uint256 public lastUpdate;
 
-    mapping(address => FeedsConfig) public feeds;
+    mapping(Fungible => FeedsConfig) public feeds;
 
     constructor(address licredity_, address owner_) {
         licredity = licredity_;
@@ -49,11 +51,11 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
     }
 
     /// @notice Returns the number of debt tokens that can be exchanged for the assets.
-    function peek(address asset, uint256 amount) external view returns (uint256 debtTokenAmount) {
-        if (asset == licredity) {
+    function quoteFungible(Fungible fungible, uint256 amount) external view returns (uint256 debtTokenAmount) {
+        if (fungible == Fungible.wrap(licredity)) {
             debtTokenAmount = amount;
         } else {
-            FeedsConfig memory config = feeds[asset];
+            FeedsConfig memory config = feeds[fungible];
 
             // If asset is token, need to set both baseFeed and quoteFeed of token to zero addresses
             // (scaleFactor * amount) * baseFeed * emaPrice / quoteFeed
@@ -84,12 +86,12 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
         emaPrice = (emaPriceX96 * 1e18) >> 96;
     }
 
-    function updateFeedsConfig(address asset, AggregatorV3Interface baseFeed, AggregatorV3Interface quoteFeed)
+    function updateFeedsConfig(Fungible asset, AggregatorV3Interface baseFeed, AggregatorV3Interface quoteFeed)
         external
         onlyOwner
     {
-        uint8 assetTokenDecimals = IERC20Minimal(asset).decimals();
-        uint8 debtTokenDecimals = IERC20Minimal(licredity).decimals();
+        uint8 assetTokenDecimals = asset.decimals();
+        uint8 debtTokenDecimals = Fungible.wrap(licredity).decimals();
 
         uint256 scaleFactor =
             10 ** (18 + quoteFeed.getDecimals() + debtTokenDecimals - baseFeed.getDecimals() - assetTokenDecimals);
