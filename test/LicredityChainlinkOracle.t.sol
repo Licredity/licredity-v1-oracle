@@ -1,5 +1,5 @@
-// SPDX-License-Identifier: GPL-2.0-or-later
-pragma solidity =0.8.30;
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.20;
 
 import {AggregatorV3Interface} from "src/interfaces/AggregatorV3Interface.sol";
 import {LicredityChainlinkOracle} from "src/LicredityChainlinkOracle.sol";
@@ -7,6 +7,7 @@ import {Fungible} from "src/types/Fungible.sol";
 import {Deployers} from "./Deployers.sol";
 import {PoolId} from "v4-core/types/PoolId.sol";
 import {IPoolManager} from "v4-core/interfaces/IPoolManager.sol";
+import {IPositionManager} from "src/interfaces/IPositionManager.sol";
 
 contract LicredityChainlinkOracleTest is Deployers {
     PoolId public mockPoolId;
@@ -20,7 +21,11 @@ contract LicredityChainlinkOracleTest is Deployers {
 
         mockPoolId = PoolId.wrap(bytes32(hex"01"));
         oracle = new LicredityChainlinkOracle(
-            address(licredity), address(this), IPoolManager(address(uniswapV4Mock)), mockPoolId
+            address(licredity),
+            address(this),
+            mockPoolId,
+            IPoolManager(address(uniswapV4Mock)),
+            IPositionManager(address(0))
         );
 
         licredityFungible = Fungible.wrap(address(licredity));
@@ -72,6 +77,11 @@ contract LicredityChainlinkOracleTest is Deployers {
         uniswapV4Mock.setPoolIdSqrtPriceX96(mockPoolId, 79843750678802117044226490368); // update price = 1.0156
         oracle.update();
         assertApproxEqAbsDecimal(oracle.emaPrice(), 1002797762706780032, 1e4, 18);
+    }
+
+    function test_quoteNonExistToken(address asset, uint256 amount) public view {
+        vm.assume(asset != Fungible.unwrap(licredityFungible));
+        assertEq(oracle.quoteFungible(Fungible.wrap(asset), amount), 0);
     }
 
     function test_quoteFungibleDebtToken(uint256 amount) public view {
