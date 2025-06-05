@@ -11,31 +11,21 @@ using NonFungibleLibrary for NonFungible global;
 /// @title NonFungibleLibrary
 /// @notice Library for managing non-fungibles
 library NonFungibleLibrary {
-    /// @notice Transfer non-fungible to recipient
-    /// @param self The non-fungible to transfer
-    /// @param recipient The address to transfer the non-fungible to
-    function transfer(NonFungible self, address recipient) internal {
-        address tokenAddress;
+    /// @notice Get the token ID of a non-fungible
+    /// @param self The non-fungible to get the token ID of
+    function getTokenId(NonFungible self) internal pure returns (uint256) {
         uint256 tokenId;
         assembly ("memory-safe") {
-            tokenAddress := shr(96, self)
             tokenId := and(self, sub(shl(96, 1), 1))
         }
-
-        IERC721(tokenAddress).safeTransferFrom(address(this), recipient, tokenId);
+        return tokenId;
     }
 
-    /// @notice Get the owner of a non-fungible
-    /// @param self The non-fungible to get the owner of
-    /// @return address The owner of the non-fungible
-    function owner(NonFungible self) internal view returns (address) {
+    function getTokenAddress(NonFungible self) internal pure returns (address) {
         address tokenAddress;
-        uint256 tokenId;
         assembly ("memory-safe") {
             tokenAddress := shr(96, self)
-            tokenId := and(self, sub(shl(96, 1), 1))
         }
-
-        return IERC721(tokenAddress).ownerOf(tokenId);
+        return tokenAddress;
     }
 }

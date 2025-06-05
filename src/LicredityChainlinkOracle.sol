@@ -6,11 +6,19 @@ import {IERC20Minimal} from "./interfaces/IERC20Minimal.sol";
 import {AggregatorV3Interface} from "./interfaces/AggregatorV3Interface.sol";
 import {Fungible} from "./types/Fungible.sol";
 import {NonFungible} from "./types/NonFungible.sol";
+import {PositionInfo} from "./types/PositionInfo.sol";
 import {ChainlinkDataFeedLib} from "./libraries/ChainlinkDataFeedLib.sol";
 import {FeedsConfig} from "./libraries/FeedsConfig.sol";
 import {FixedPointMath} from "./libraries/FixedPointMath.sol";
 import {PoolId} from "v4-core/types/PoolId.sol";
+import {PoolKey} from "v4-core/types/PoolKey.sol";
+import {Position} from "v4-core/libraries/Position.sol";
+import {FullMath} from "v4-core/libraries/FullMath.sol";
+import {TickMath} from "v4-core/libraries/TickMath.sol";
+import {FixedPoint128} from "v4-core/libraries/FixedPoint128.sol";
+import {SqrtPriceMath} from "v4-core/libraries/SqrtPriceMath.sol";
 import {IPoolManager} from "v4-core/interfaces/IPoolManager.sol";
+import {IPositionManager} from "./interfaces/IPositionManager.sol";
 import {StateLibrary} from "v4-core/libraries/StateLibrary.sol";
 
 contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
@@ -20,11 +28,12 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
     using StateLibrary for IPoolManager;
 
     error NotLicredity();
+    error NotUniswapV4Position();
     error NotOwner();
 
     PoolId public poolId;
-    IPoolManager immutable uniswapV4Manager;
-
+    IPoolManager immutable poolManager;
+    IPositionManager immutable positionManager;
     address public licredity;
     address public owner;
 
@@ -36,11 +45,18 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
 
     mapping(Fungible => FeedsConfig) public feeds;
 
-    constructor(address licredity_, address owner_, IPoolManager uniswapV4_, PoolId poolId_) {
+    constructor(
+        address licredity_,
+        address owner_,
+        PoolId poolId_,
+        IPoolManager poolManager_,
+        IPositionManager positionManager_
+    ) {
         licredity = licredity_;
         owner = owner_;
-        uniswapV4Manager = uniswapV4_;
         poolId = poolId_;
+        poolManager = poolManager_;
+        positionManager = positionManager_;
 
         lastUpdateTimeStamp = block.timestamp;
         currentTimeStamp = block.timestamp;
@@ -65,7 +81,7 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
     }
 
     /// @notice Returns the number of debt tokens that can be exchanged for the assets.
-    function quoteFungible(Fungible fungible, uint256 amount) external view returns (uint256 debtTokenAmount) {
+    function quoteFungible(Fungible fungible, uint256 amount) public view returns (uint256 debtTokenAmount) {
         if (fungible == Fungible.wrap(licredity)) {
             debtTokenAmount = amount;
         } else {
@@ -79,6 +95,54 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
         }
     }
 
+    function quoteNonFungible(NonFungible nonFungible) external view returns (uint256 debtTokenAmount) {
+        require(nonFungible.getTokenAddress() == address(positionManager), NotUniswapV4Position());
+        uint256 tokenId = nonFungible.getTokenId();
+
+        (PoolKey memory poolKey, PositionInfo positionInfo) = positionManager.getPoolAndPositionInfo(tokenId);
+        require(PoolId.unwrap(poolKey.toId()) == PoolId.unwrap(poolId), NotUniswapV4Position());
+
+        (uint160 sqrtPriceX96, int24 tick,,) = poolManager.getSlot0(poolKey.toId());
+        int24 tickLower = positionInfo.tickLower();
+        int24 tickUpper = positionInfo.tickUpper();
+
+        bytes32 positionId =
+            Position.calculatePositionKey(address(positionManager), tickLower, tickUpper, bytes32(tokenId));
+        (uint128 liquidity, uint256 feeGrowthInside0LastX128, uint256 feeGrowthInside1LastX128) =
+            poolManager.getPositionInfo(poolId, positionId);
+
+        uint256 tokenAmount; // Token is currency 1
+
+        // Fee
+        (uint256 feeGrowthInside0X128, uint256 feeGrowthInside1X128) =
+            poolManager.getFeeGrowthInside(poolId, tickLower, tickUpper);
+
+        unchecked {
+            debtTokenAmount +=
+                FullMath.mulDiv(feeGrowthInside0X128 - feeGrowthInside0LastX128, liquidity, FixedPoint128.Q128);
+            tokenAmount +=
+                FullMath.mulDiv(feeGrowthInside1X128 - feeGrowthInside1LastX128, liquidity, FixedPoint128.Q128);
+        }
+
+        // Token in LP
+        if (tick < tickLower) {
+            debtTokenAmount += SqrtPriceMath.getAmount0Delta(
+                TickMath.getSqrtPriceAtTick(tickLower), TickMath.getSqrtPriceAtTick(tickUpper), liquidity, false
+            );
+        } else if (tick < tickUpper) {
+            debtTokenAmount +=
+                SqrtPriceMath.getAmount0Delta(sqrtPriceX96, TickMath.getSqrtPriceAtTick(tickUpper), liquidity, false);
+            tokenAmount +=
+                SqrtPriceMath.getAmount1Delta(TickMath.getSqrtPriceAtTick(tickLower), sqrtPriceX96, liquidity, false);
+        } else {
+            tokenAmount += SqrtPriceMath.getAmount1Delta(
+                TickMath.getSqrtPriceAtTick(tickLower), TickMath.getSqrtPriceAtTick(tickUpper), liquidity, false
+            );
+        }
+
+        debtTokenAmount += (1e18 * tokenAmount).fullMulDiv(emaPrice, 1e36);
+    }
+
     function update() external onlyLicredity {
         if (block.timestamp != currentTimeStamp) {
             lastUpdateTimeStamp = currentTimeStamp;
@@ -87,7 +151,7 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
         }
 
         // TODO: get sqrtPriceX96 from uniswap v4
-        (uint160 sqrtPriceX96,,,) = uniswapV4Manager.getSlot0(poolId);
+        (uint160 sqrtPriceX96,,,) = poolManager.getSlot0(poolId);
 
         // alpha = e ^ -(block.timestamp - lastUpdateTimeStamp)
         int256 power = ((int256(lastUpdateTimeStamp) - int256(block.timestamp)) << 96) / 600;
@@ -122,5 +186,9 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
         feeds[asset] = FeedsConfig({scaleFactor: scaleFactor, baseFeed: baseFeed, quoteFeed: quoteFeed});
 
         emit FeedsUpdated(asset, baseFeed, quoteFeed);
+    }
+
+    function deleteFeedsConfig(Fungible asset) external onlyOwner {
+        delete feeds[asset];
     }
 }
