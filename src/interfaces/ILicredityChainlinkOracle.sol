@@ -16,12 +16,12 @@ interface ILicredityChainlinkOracle {
     /// @param fungible The fungible to quote
     /// @param amount The amount of fungible to quote
     /// @return value The value of the fungible in debt token terms
-    function quoteFungible(Fungible fungible, uint256 amount) external view returns (uint256 value);
+    function quoteFungible(Fungible fungible, uint256 amount) external returns (uint256 value);
 
     /// @notice Function to get the value, in debt token terms, of a non-fungible
     /// @param nonFungible The non-fungible to quote
     /// @return value The value of the non-fungible in debt token terms
-    function quoteNonFungible(NonFungible nonFungible) external view returns (uint256 value);
+    function quoteNonFungible(NonFungible nonFungible) external returns (uint256 value);
 
     /// @notice Update the price of debt token based on EMA using the price from beforeSwap Hook
     function update() external;

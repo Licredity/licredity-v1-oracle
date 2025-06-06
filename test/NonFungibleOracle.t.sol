@@ -33,9 +33,10 @@ contract NonFungibleOracleTest is Deployers {
         }
     }
 
-    function test_quoteNonFungible_ETHUSDC() public view {
+    function test_quoteNonFungible_ETHUSDC() public {
         NonFungible nft = getFungible(23864);
+        // ETH / USDC = 0.984375
         uint256 debtTokenAmount = oracle.quoteNonFungible(nft);
-        assertEq(debtTokenAmount, 4903006588562427069110 + 3421468981784);
+        assertEq(debtTokenAmount, 4903006588562427069110 + 3368008528943);
     }
 }

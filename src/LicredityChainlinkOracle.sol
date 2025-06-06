@@ -81,7 +81,8 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
     }
 
     /// @notice Returns the number of debt tokens that can be exchanged for the assets.
-    function quoteFungible(Fungible fungible, uint256 amount) public view returns (uint256 debtTokenAmount) {
+    function quoteFungible(Fungible fungible, uint256 amount) public returns (uint256 debtTokenAmount) {
+        update();
         if (fungible == Fungible.wrap(licredity)) {
             debtTokenAmount = amount;
         } else {
@@ -95,7 +96,8 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
         }
     }
 
-    function quoteNonFungible(NonFungible nonFungible) external view returns (uint256 debtTokenAmount) {
+    function quoteNonFungible(NonFungible nonFungible) external returns (uint256 debtTokenAmount) {
+        update();
         require(nonFungible.getTokenAddress() == address(positionManager), NotUniswapV4Position());
         uint256 tokenId = nonFungible.getTokenId();
 
@@ -143,7 +145,7 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
         debtTokenAmount += (1e18 * tokenAmount).fullMulDiv(emaPrice, 1e36);
     }
 
-    function update() external onlyLicredity {
+    function update() public {
         if (block.timestamp != currentTimeStamp) {
             lastUpdateTimeStamp = currentTimeStamp;
             currentTimeStamp = block.timestamp;
@@ -152,6 +154,10 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
 
         // TODO: get sqrtPriceX96 from uniswap v4
         (uint160 sqrtPriceX96,,,) = poolManager.getSlot0(poolId);
+
+        if (sqrtPriceX96 == lastPriceX96) {
+            return;
+        }
 
         // alpha = e ^ -(block.timestamp - lastUpdateTimeStamp)
         int256 power = ((int256(lastUpdateTimeStamp) - int256(block.timestamp)) << 96) / 600;
