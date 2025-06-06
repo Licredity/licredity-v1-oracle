@@ -13,7 +13,12 @@ function equals(Fungible x, Fungible y) pure returns (bool) {
 }
 
 library FungibleLibrary {
+    Fungible public constant NATIVE = Fungible.wrap(address(0));
+
     function decimals(Fungible fungible) internal view returns (uint8) {
+        if (fungible == NATIVE) {
+            return 18;
+        }
         return IERC20Minimal(Fungible.unwrap(fungible)).decimals();
     }
 }

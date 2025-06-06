@@ -12,6 +12,7 @@ import {FeedsConfig} from "./libraries/FeedsConfig.sol";
 import {FixedPointMath} from "./libraries/FixedPointMath.sol";
 import {PoolId} from "v4-core/types/PoolId.sol";
 import {PoolKey} from "v4-core/types/PoolKey.sol";
+import {Currency} from "v4-core/types/Currency.sol";
 import {Position} from "v4-core/libraries/Position.sol";
 import {FullMath} from "v4-core/libraries/FullMath.sol";
 import {TickMath} from "v4-core/libraries/TickMath.sol";
@@ -102,7 +103,6 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
         uint256 tokenId = nonFungible.getTokenId();
 
         (PoolKey memory poolKey, PositionInfo positionInfo) = positionManager.getPoolAndPositionInfo(tokenId);
-        require(PoolId.unwrap(poolKey.toId()) == PoolId.unwrap(poolId), NotUniswapV4Position());
 
         (uint160 sqrtPriceX96, int24 tick,,) = poolManager.getSlot0(poolKey.toId());
         int24 tickLower = positionInfo.tickLower();
@@ -113,36 +113,42 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
         (uint128 liquidity, uint256 feeGrowthInside0LastX128, uint256 feeGrowthInside1LastX128) =
             poolManager.getPositionInfo(poolId, positionId);
 
-        uint256 tokenAmount; // Token is currency 1
+        uint256 token0Amount;
+        uint256 token1Amount;
 
-        // Fee
-        (uint256 feeGrowthInside0X128, uint256 feeGrowthInside1X128) =
-            poolManager.getFeeGrowthInside(poolId, tickLower, tickUpper);
+        {
+            // Fee
+            (uint256 feeGrowthInside0X128, uint256 feeGrowthInside1X128) =
+                poolManager.getFeeGrowthInside(poolId, tickLower, tickUpper);
 
-        unchecked {
-            debtTokenAmount +=
-                FullMath.mulDiv(feeGrowthInside0X128 - feeGrowthInside0LastX128, liquidity, FixedPoint128.Q128);
-            tokenAmount +=
-                FullMath.mulDiv(feeGrowthInside1X128 - feeGrowthInside1LastX128, liquidity, FixedPoint128.Q128);
+            unchecked {
+                token0Amount +=
+                    FullMath.mulDiv(feeGrowthInside0X128 - feeGrowthInside0LastX128, liquidity, FixedPoint128.Q128);
+                token1Amount +=
+                    FullMath.mulDiv(feeGrowthInside1X128 - feeGrowthInside1LastX128, liquidity, FixedPoint128.Q128);
+            }
+
+            // Token in LP
+            if (tick < tickLower) {
+                token0Amount += SqrtPriceMath.getAmount0Delta(
+                    TickMath.getSqrtPriceAtTick(tickLower), TickMath.getSqrtPriceAtTick(tickUpper), liquidity, false
+                );
+            } else if (tick < tickUpper) {
+                token0Amount += SqrtPriceMath.getAmount0Delta(
+                    sqrtPriceX96, TickMath.getSqrtPriceAtTick(tickUpper), liquidity, false
+                );
+                token1Amount += SqrtPriceMath.getAmount1Delta(
+                    TickMath.getSqrtPriceAtTick(tickLower), sqrtPriceX96, liquidity, false
+                );
+            } else {
+                token1Amount += SqrtPriceMath.getAmount1Delta(
+                    TickMath.getSqrtPriceAtTick(tickLower), TickMath.getSqrtPriceAtTick(tickUpper), liquidity, false
+                );
+            }
         }
 
-        // Token in LP
-        if (tick < tickLower) {
-            debtTokenAmount += SqrtPriceMath.getAmount0Delta(
-                TickMath.getSqrtPriceAtTick(tickLower), TickMath.getSqrtPriceAtTick(tickUpper), liquidity, false
-            );
-        } else if (tick < tickUpper) {
-            debtTokenAmount +=
-                SqrtPriceMath.getAmount0Delta(sqrtPriceX96, TickMath.getSqrtPriceAtTick(tickUpper), liquidity, false);
-            tokenAmount +=
-                SqrtPriceMath.getAmount1Delta(TickMath.getSqrtPriceAtTick(tickLower), sqrtPriceX96, liquidity, false);
-        } else {
-            tokenAmount += SqrtPriceMath.getAmount1Delta(
-                TickMath.getSqrtPriceAtTick(tickLower), TickMath.getSqrtPriceAtTick(tickUpper), liquidity, false
-            );
-        }
-
-        debtTokenAmount += (1e18 * tokenAmount).fullMulDiv(emaPrice, 1e36);
+        debtTokenAmount += quoteFungible(Fungible.wrap(Currency.unwrap(poolKey.currency0)), token0Amount);
+        debtTokenAmount += quoteFungible(Fungible.wrap(Currency.unwrap(poolKey.currency1)), token1Amount);
     }
 
     function update() public {
