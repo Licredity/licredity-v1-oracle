@@ -45,6 +45,7 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
     uint256 public currentTimeStamp;
 
     mapping(Fungible => FeedsConfig) public feeds;
+    mapping(PoolId => bool) public nonFungiblePoolIdWhitelist;
 
     constructor(
         address licredity_,
@@ -97,14 +98,21 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
         }
     }
 
-    function quoteNonFungible(NonFungible nonFungible) external returns (uint256 debtTokenAmount) {
+    function quoteNonFungible(NonFungible nonFungible) external returns (uint256) {
         update();
         require(nonFungible.getTokenAddress() == address(positionManager), NotUniswapV4Position());
         uint256 tokenId = nonFungible.getTokenId();
 
         (PoolKey memory poolKey, PositionInfo positionInfo) = positionManager.getPoolAndPositionInfo(tokenId);
 
-        (uint160 sqrtPriceX96, int24 tick,,) = poolManager.getSlot0(poolKey.toId());
+        PoolId _poolId = poolKey.toId();
+        (uint160 sqrtPriceX96, int24 tick,,) = poolManager.getSlot0(_poolId);
+        if (!nonFungiblePoolIdWhitelist[_poolId]) {
+            return 0;
+        }
+
+        uint256 debtTokenAmount;
+
         int24 tickLower = positionInfo.tickLower();
         int24 tickUpper = positionInfo.tickUpper();
 
@@ -149,6 +157,8 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
 
         debtTokenAmount += quoteFungible(Fungible.wrap(Currency.unwrap(poolKey.currency0)), token0Amount);
         debtTokenAmount += quoteFungible(Fungible.wrap(Currency.unwrap(poolKey.currency1)), token1Amount);
+
+        return debtTokenAmount;
     }
 
     function update() public {
@@ -185,7 +195,7 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
         emaPrice = (emaPriceX96 * 1e18) >> 96;
     }
 
-    function updateFeedsConfig(Fungible asset, AggregatorV3Interface baseFeed, AggregatorV3Interface quoteFeed)
+    function updateFungibleFeedsConfig(Fungible asset, AggregatorV3Interface baseFeed, AggregatorV3Interface quoteFeed)
         external
         onlyOwner
     {
@@ -200,7 +210,21 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
         emit FeedsUpdated(asset, baseFeed, quoteFeed);
     }
 
-    function deleteFeedsConfig(Fungible asset) external onlyOwner {
+    function deleteFungibleFeedsConfig(Fungible asset) external onlyOwner {
         delete feeds[asset];
+
+        emit FeedsDeleted(asset);
+    }
+
+    function updateNonFungiblePoolIdWhitelist(PoolId id) external onlyOwner {
+        nonFungiblePoolIdWhitelist[id] = true;
+
+        emit PoolIdWhitelistUpdated(id, true);
+    }
+
+    function deleteNonFungiblePoolIdWhitelist(PoolId id) external onlyOwner {
+        delete nonFungiblePoolIdWhitelist[id];
+
+        emit PoolIdWhitelistUpdated(id, false);
     }
 }

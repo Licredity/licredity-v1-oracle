@@ -38,9 +38,11 @@ contract NonFungibleOracleTest is Deployers {
     }
 
     function test_quoteNonFungible_ETHUSDC() public {
+        oracle.updateNonFungiblePoolIdWhitelist(ETHUSDCPoolId);
+        
         NonFungible nft = getFungible(23864);
-        oracle.updateFeedsConfig(Fungible.wrap(address(0)), ZERO_ORACLE, ZERO_ORACLE);
-        oracle.updateFeedsConfig(
+        oracle.updateFungibleFeedsConfig(Fungible.wrap(address(0)), ZERO_ORACLE, ZERO_ORACLE);
+        oracle.updateFungibleFeedsConfig(
             Fungible.wrap(USDC),
             ZERO_ORACLE,
             AggregatorV3Interface(address(0x5147eA642CAEF7BD9c1265AadcA78f997AbB9649))
