@@ -79,17 +79,17 @@ contract LicredityChainlinkOracleTest is Deployers {
         assertApproxEqAbsDecimal(oracle.emaPrice(), 1002797762706780032, 1e4, 18);
     }
 
-    function test_quoteNonExistToken(address asset, uint256 amount) public {
-        vm.assume(asset != Fungible.unwrap(licredityFungible));
-        assertEq(oracle.quoteFungible(Fungible.wrap(asset), amount), 0);
-    }
+function test_quoteNonExistToken(address asset, uint256 amount) public {
+    vm.assume(asset != Fungible.unwrap(licredityFungible));
+    assertEq(oracle.quoteFungible(Fungible.wrap(asset), amount), 0);
+}
 
     function test_quoteFungibleDebtToken(uint256 amount) public {
         assertEq(oracle.quoteFungible(licredityFungible, amount), amount);
     }
 
     function test_quoteFungibleEthUsd() public {
-        oracle.updateFeedsConfig(Fungible.wrap(address(usd)), AggregatorV3Interface(address(0)), ethUSD);
+        oracle.updateFungibleFeedsConfig(Fungible.wrap(address(usd)), AggregatorV3Interface(address(0)), ethUSD);
         uniswapV4Mock.setPoolIdSqrtPriceX96(mockPoolId, 1 << 96);
 
         uint256 quoteFungibleAmount = oracle.quoteFungible(Fungible.wrap(address(usd)), 262341076816);
@@ -97,7 +97,7 @@ contract LicredityChainlinkOracleTest is Deployers {
     }
 
     function test_quoteFungibleBtcEth() public {
-        oracle.updateFeedsConfig(Fungible.wrap(address(btc)), btcETH, AggregatorV3Interface(address(0)));
+        oracle.updateFungibleFeedsConfig(Fungible.wrap(address(btc)), btcETH, AggregatorV3Interface(address(0)));
         uniswapV4Mock.setPoolIdSqrtPriceX96(mockPoolId, 1 << 96);
 
         uint256 quoteFungibleAmount = oracle.quoteFungible(Fungible.wrap(address(btc)), 1e8);
