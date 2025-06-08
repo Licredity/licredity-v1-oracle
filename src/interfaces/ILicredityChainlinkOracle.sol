@@ -20,7 +20,7 @@ interface ILicredityChainlinkOracle {
     /// @notice Event emitted when the pool ID whitelist is updated
     /// @param id The pool ID
     event PoolIdWhitelistUpdated(PoolId indexed id, bool enabled);
-    
+
     /// @notice Function to get the value, in debt token terms, of some amount of fungible
     /// @param fungible The fungible to quote
     /// @param amount The amount of fungible to quote
@@ -39,7 +39,7 @@ interface ILicredityChainlinkOracle {
     /// @param asset The address of the asset
     /// @param baseFeed Base feed. Pass address zero if the price = 1
     /// @param quoteFeed Quote feed. Pass address zero if the price = 1
-    /// @dev The implementation automatically multiplies the base fee calculation result by the token/debtToken price.
+    /// @dev The implementation automatically multiplies the base fee calculation result by the debtToken/token price.
     function updateFungibleFeedsConfig(Fungible asset, AggregatorV3Interface baseFeed, AggregatorV3Interface quoteFeed)
         external;
 

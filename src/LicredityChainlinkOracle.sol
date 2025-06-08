@@ -91,9 +91,9 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
             FeedsConfig memory config = feeds[fungible];
 
             // If asset is token, need to set both baseFeed and quoteFeed of token to zero addresses
-            // (scaleFactor * amount) * baseFeed * emaPrice / quoteFeed
-            debtTokenAmount = (config.scaleFactor * amount).fullMulDiv(
-                emaPrice * config.baseFeed.getPrice(), config.quoteFeed.getPrice() * 1e36
+            // scaleFactor * (amount * baseFeed) / (emaPrice * quoteFeed)
+            debtTokenAmount = (config.scaleFactor).fullMulDiv(
+                amount * config.baseFeed.getPrice(), emaPrice * config.quoteFeed.getPrice() * 1e18
             );
         }
     }
@@ -203,7 +203,7 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
         uint8 debtTokenDecimals = Fungible.wrap(licredity).decimals();
 
         uint256 scaleFactor =
-            10 ** (18 + quoteFeed.getDecimals() + debtTokenDecimals - baseFeed.getDecimals() - assetTokenDecimals);
+            10 ** (36 + quoteFeed.getDecimals() + debtTokenDecimals - baseFeed.getDecimals() - assetTokenDecimals);
 
         feeds[asset] = FeedsConfig({scaleFactor: scaleFactor, baseFeed: baseFeed, quoteFeed: quoteFeed});
 
