@@ -37,6 +37,19 @@ contract LicredityChainlinkOracleTest is Deployers {
         vm.stopPrank();
     }
 
+    function getOraclePriceFromFFI(uint256 lastPrice, uint256 nowPrice, uint256 skipTime) public returns (uint256) {
+        string[] memory inputs = new string[](6);
+        inputs[0] = "uv";
+        inputs[1] = "run";
+        inputs[2] = "test/python-scripts/ema_update.py";
+        inputs[3] = vm.toString(lastPrice);
+        inputs[4] = vm.toString(nowPrice);
+        inputs[5] = vm.toString(skipTime);
+
+        bytes memory res = vm.ffi(inputs);
+        return vm.parseUint(string(res));
+    }
+
     function test_oracleUpdate_upperLimit(uint88 interPrice) public asLicredity {
         skip(1);
 
@@ -45,44 +58,60 @@ contract LicredityChainlinkOracleTest is Deployers {
         oracle.update();
 
         // update price = 10
-        uniswapV4Mock.setPoolIdSqrtPriceX96(mockPoolId, 250541448375047946302209916928);
+        uint160 nowSqrtPrice = 250541448375047946302209916928;
+        uniswapV4Mock.setPoolIdSqrtPriceX96(mockPoolId, nowSqrtPrice);
 
         oracle.update();
-        assertApproxEqAbsDecimal(oracle.emaPrice(), 1015598980022670848, 1e4, 18);
+        uint256 emaPriceFromFFI = getOraclePriceFromFFI(1 << 96, nowSqrtPrice, 1);
+
+        // assertApproxEqAbsDecimal(oracle.emaPrice(), 1015598980022670848, 1e4, 18);
+        assertApproxEqAbsDecimal(oracle.emaPrice(), emaPriceFromFFI, 1e4, 18);
     }
 
     function test_oracleUpdate_maxTime() public asLicredity {
         skip(6000);
-        uniswapV4Mock.setPoolIdSqrtPriceX96(mockPoolId, 79843750678802117044226490368); // update price = 1.0156
+
+        uint160 nowSqrtPrice = 79843750678802117044226490368; // update price = 1.0156
+        uniswapV4Mock.setPoolIdSqrtPriceX96(mockPoolId, nowSqrtPrice);
         oracle.update();
-        assertApproxEqAbsDecimal(oracle.emaPrice(), 1000000708238904192, 1e4, 18);
+
+        uint256 emaPriceFromFFI = getOraclePriceFromFFI(1 << 96, nowSqrtPrice, 6000);
+        assertApproxEqAbsDecimal(oracle.emaPrice(), emaPriceFromFFI, 1e4, 18);
     }
 
     function test_oracleUpdate_normal() public asLicredity {
         skip(42);
-        uniswapV4Mock.setPoolIdSqrtPriceX96(mockPoolId, 79346915759800263220867891200); // update price = 1.003
-
+        uint160 nowSqrtPrice = 79346915759800263220867891200; // update price = 1.003
+        uniswapV4Mock.setPoolIdSqrtPriceX96(mockPoolId, nowSqrtPrice);
         oracle.update();
-        assertApproxEqAbsDecimal(oracle.emaPrice(), 1002797181459717632, 1e4, 18);
+
+        uint256 emaPriceFromFFI = getOraclePriceFromFFI(1 << 96, nowSqrtPrice, 42);
+        assertApproxEqAbsDecimal(oracle.emaPrice(), emaPriceFromFFI, 1e4, 18);
     }
 
     function test_oracleUpdate_multiple() public asLicredity {
         skip(42);
-        uniswapV4Mock.setPoolIdSqrtPriceX96(mockPoolId, 79346915759800263220867891200); // update price = 1.003
 
+        uint160 nowSqrtPrice = 79346915759800263220867891200; // update price = 1.003
+        uniswapV4Mock.setPoolIdSqrtPriceX96(mockPoolId, nowSqrtPrice);
         oracle.update();
-        assertApproxEqAbsDecimal(oracle.emaPrice(), 1002797181459717632, 1e4, 18);
+
+        uint256 emaPriceFromFFI = getOraclePriceFromFFI(1 << 96, nowSqrtPrice, 42);
+        assertApproxEqAbsDecimal(oracle.emaPrice(), emaPriceFromFFI, 1e4, 18);
 
         skip(6000);
-        uniswapV4Mock.setPoolIdSqrtPriceX96(mockPoolId, 79843750678802117044226490368); // update price = 1.0156
+        nowSqrtPrice = 79843750678802117044226490368; // update price = 1.0156
+        uniswapV4Mock.setPoolIdSqrtPriceX96(mockPoolId, nowSqrtPrice);
         oracle.update();
-        assertApproxEqAbsDecimal(oracle.emaPrice(), 1002797762706780032, 1e4, 18);
+
+        emaPriceFromFFI = getOraclePriceFromFFI(oracle.lastPriceX96(), nowSqrtPrice, 6000);
+        assertApproxEqAbsDecimal(oracle.emaPrice(), emaPriceFromFFI, 1e4, 18);
     }
 
-function test_quoteNonExistToken(address asset, uint256 amount) public {
-    vm.assume(asset != Fungible.unwrap(licredityFungible));
-    assertEq(oracle.quoteFungible(Fungible.wrap(asset), amount), 0);
-}
+    function test_quoteNonExistToken(address asset, uint256 amount) public {
+        vm.assume(asset != Fungible.unwrap(licredityFungible));
+        assertEq(oracle.quoteFungible(Fungible.wrap(asset), amount), 0);
+    }
 
     function test_quoteFungibleDebtToken(uint256 amount) public {
         assertEq(oracle.quoteFungible(licredityFungible, amount), amount);
