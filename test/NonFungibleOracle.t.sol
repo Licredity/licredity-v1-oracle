@@ -39,17 +39,15 @@ contract NonFungibleOracleTest is Deployers {
 
     function test_quoteNonFungible_ETHUSDC() public {
         oracle.updateNonFungiblePoolIdWhitelist(ETHUSDCPoolId);
-        
+
         NonFungible nft = getFungible(23864);
         oracle.updateFungibleFeedsConfig(Fungible.wrap(address(0)), ZERO_ORACLE, ZERO_ORACLE);
         oracle.updateFungibleFeedsConfig(
-            Fungible.wrap(USDC),
-            ZERO_ORACLE,
-            AggregatorV3Interface(address(0x5147eA642CAEF7BD9c1265AadcA78f997AbB9649))
+            Fungible.wrap(USDC), ZERO_ORACLE, AggregatorV3Interface(address(0x5147eA642CAEF7BD9c1265AadcA78f997AbB9649))
         );
-        // ETH / USDC = 2602.68440965, ETH / pegETH = 0.984375
+        // ETH / USDC = 2602.68440965, debt ETH / ETH = 0.984375
         uint256 debtTokenAmount = oracle.quoteNonFungible(nft);
-        // assertEq(debtTokenAmount, 4903006588562427069110 + 3368008528943);
-        assertApproxEqAbsDecimal(debtTokenAmount, 4826397110616138448896 + 1294051832199103643648, 1e6, 18);
+        // assertEq(debtTokenAmount, 4903006588562427069110 + 3421468981784);
+        assertApproxEqAbsDecimal(debtTokenAmount, 4980832089968179412992 + 1335458882511345025024, 1e6, 18);
     }
 }
