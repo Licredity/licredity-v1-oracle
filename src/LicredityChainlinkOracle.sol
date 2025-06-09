@@ -167,17 +167,16 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
     }
 
     function update() public {
+        (uint160 sqrtPriceX96,,,) = poolManager.getSlot0(poolId);
+
+        if (sqrtPriceX96 == lastPriceX96 && currentTimeStamp == block.timestamp) {
+            return;
+        }
+
         if (block.timestamp != currentTimeStamp) {
             lastUpdateTimeStamp = currentTimeStamp;
             currentTimeStamp = block.timestamp;
             lastPriceX96 = currentPriceX96;
-        }
-
-        // TODO: get sqrtPriceX96 from uniswap v4
-        (uint160 sqrtPriceX96,,,) = poolManager.getSlot0(poolId);
-
-        if (sqrtPriceX96 == lastPriceX96) {
-            return;
         }
 
         // alpha = e ^ -(block.timestamp - lastUpdateTimeStamp)
