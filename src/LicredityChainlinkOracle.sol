@@ -100,16 +100,21 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
 
     function quoteNonFungible(NonFungible nonFungible) external returns (uint256) {
         update();
-        require(nonFungible.getTokenAddress() == address(positionManager), NotUniswapV4Position());
+        if (nonFungible.getTokenAddress() != address(positionManager)) {
+            return 0;
+        }
+
         uint256 tokenId = nonFungible.getTokenId();
 
         (PoolKey memory poolKey, PositionInfo positionInfo) = positionManager.getPoolAndPositionInfo(tokenId);
 
         PoolId _poolId = poolKey.toId();
-        (uint160 sqrtPriceX96, int24 tick,,) = poolManager.getSlot0(_poolId);
+
         if (!nonFungiblePoolIdWhitelist[_poolId]) {
             return 0;
         }
+
+        (uint160 sqrtPriceX96, int24 tick,,) = poolManager.getSlot0(_poolId);
 
         uint256 debtTokenAmount;
 
