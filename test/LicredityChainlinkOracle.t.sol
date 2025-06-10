@@ -10,6 +10,8 @@ import {IPoolManager} from "v4-core/interfaces/IPoolManager.sol";
 import {IPositionManager} from "src/interfaces/IPositionManager.sol";
 
 contract LicredityChainlinkOracleTest is Deployers {
+    error NotSupportedFungible();
+
     PoolId public mockPoolId;
     Fungible public licredityFungible;
     LicredityChainlinkOracle public oracle;
@@ -110,6 +112,7 @@ contract LicredityChainlinkOracleTest is Deployers {
 
     function test_quoteNonExistToken(address asset, uint256 amount) public {
         vm.assume(asset != Fungible.unwrap(licredityFungible));
+        vm.expectRevert(NotSupportedFungible.selector);
         assertEq(oracle.quoteFungible(Fungible.wrap(asset), amount), 0);
     }
 

@@ -29,6 +29,7 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
     using StateLibrary for IPoolManager;
 
     error NotLicredity();
+    error NotSupportedFungible();
     error NotUniswapV4Position();
     error NotOwner();
 
@@ -88,6 +89,10 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
         if (fungible == Fungible.wrap(licredity)) {
             debtTokenAmount = amount;
         } else {
+            uint256 scaleFactor = feeds[fungible].scaleFactor;
+
+            require(scaleFactor != 0, NotSupportedFungible());
+
             FeedsConfig memory config = feeds[fungible];
 
             // If asset is token, need to set both baseFeed and quoteFeed of token to zero addresses
