@@ -7,6 +7,7 @@ import {AggregatorV3Interface} from "../interfaces/AggregatorV3Interface.sol";
 /// @notice Library exposing functions to interact with a Chainlink-compliant feed.
 library ChainlinkDataFeedLib {
     error NegativeAnswer();
+    
     /// @dev Performs safety checks and returns the latest price of a `feed`.
     /// @dev When `feed` is the address zero, returns 1.
     /// @dev Notes on safety checks:
@@ -14,7 +15,6 @@ library ChainlinkDataFeedLib {
     /// - Staleness is not checked because it's assumed that the Chainlink feed keeps its promises on this.
     /// - The price is not checked to be in the min/max bounds because it's assumed that the Chainlink feed keeps its
     /// promises on this.
-
     function getPrice(AggregatorV3Interface feed) internal view returns (uint256) {
         if (address(feed) == address(0)) return 1;
 
