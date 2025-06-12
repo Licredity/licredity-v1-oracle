@@ -108,8 +108,8 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
 
             // If asset is token, need to set both baseFeed and quoteFeed of token to zero addresses
             // scaleFactor * (amount * baseFeed) / (emaPrice * quoteFeed)
-            debtTokenAmount = (config.scaleFactor).fullMulDiv(
-                amount * config.baseFeed.getPrice(), emaPrice * config.quoteFeed.getPrice() * 1e18
+            debtTokenAmount = (emaPrice * config.scaleFactor).fullMulDiv(
+                amount * config.baseFeed.getPrice(), config.quoteFeed.getPrice() * 1e36
             );
 
             marginRequirement = debtTokenAmount.mulUnitUp(mrrBps);
@@ -230,7 +230,7 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
         uint8 debtTokenDecimals = licredity.decimals();
 
         uint256 scaleFactor =
-            10 ** (36 + quoteFeed.getDecimals() + debtTokenDecimals - baseFeed.getDecimals() - assetTokenDecimals);
+            10 ** (18 + quoteFeed.getDecimals() + debtTokenDecimals - baseFeed.getDecimals() - assetTokenDecimals);
 
         feeds[asset] = FeedsConfig({mrrBps: mrrBps, scaleFactor: scaleFactor, baseFeed: baseFeed, quoteFeed: quoteFeed});
 

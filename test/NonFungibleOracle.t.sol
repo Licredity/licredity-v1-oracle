@@ -48,6 +48,6 @@ contract NonFungibleOracleTest is Deployers {
         // ETH / USDC = 2602.68440965, debt ETH / ETH = 0.984375
         (uint256 debtTokenAmount,) = oracle.quoteNonFungible(position, 23864);
         // assertEq(debtTokenAmount, 4903006588562427069110 + 3421468981784);
-        assertApproxEqAbsDecimal(debtTokenAmount, 4980832089968179412992 + 1335458882511345025024, 1e6, 18);
+        assertApproxEqAbsDecimal(debtTokenAmount, 4826397110616138448896 + 1294051832199103643648, 1e6, 18);
     }
 }
