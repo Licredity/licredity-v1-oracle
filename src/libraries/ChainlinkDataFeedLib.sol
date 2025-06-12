@@ -7,7 +7,7 @@ import {AggregatorV3Interface} from "../interfaces/AggregatorV3Interface.sol";
 /// @notice Library exposing functions to interact with a Chainlink-compliant feed.
 library ChainlinkDataFeedLib {
     error NegativeAnswer();
-    
+
     /// @dev Performs safety checks and returns the latest price of a `feed`.
     /// @dev When `feed` is the address zero, returns 1.
     /// @dev Notes on safety checks:

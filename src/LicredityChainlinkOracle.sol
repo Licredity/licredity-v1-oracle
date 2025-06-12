@@ -97,6 +97,7 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
         update();
         if (fungible == licredity) {
             debtTokenAmount = amount;
+            marginRequirement = 0;
         } else {
             uint16 mrrBps = feeds[fungible].mrrBps;
             uint256 scaleFactor = feeds[fungible].scaleFactor;
@@ -115,6 +116,11 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
         }
     }
 
+    struct PositionState {
+        uint256 token0Amount;
+        uint256 token1Amount;
+    }
+
     function quoteNonFungible(address token, uint256 id)
         external
         returns (uint256 debtTokenAmount, uint256 marginRequirement)
@@ -128,53 +134,54 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
 
         require(nonFungiblePoolIdWhitelist[_poolId], NotSupportedNonFungible());
 
-        (uint160 sqrtPriceX96, int24 tick,,) = poolManager.getSlot0(_poolId);
-
-        int24 tickLower = positionInfo.tickLower();
-        int24 tickUpper = positionInfo.tickUpper();
-
-        bytes32 positionId = Position.calculatePositionKey(address(positionManager), tickLower, tickUpper, bytes32(id));
-        (uint128 liquidity, uint256 feeGrowthInside0LastX128, uint256 feeGrowthInside1LastX128) =
-            poolManager.getPositionInfo(poolId, positionId);
-
-        uint256 token0Amount;
-        uint256 token1Amount;
+        PositionState memory state;
 
         {
+            (uint160 sqrtPriceX96, int24 tick,,) = poolManager.getSlot0(_poolId);
+
+            int24 tickLower = positionInfo.tickLower();
+            int24 tickUpper = positionInfo.tickUpper();
+
+            bytes32 positionId =
+                Position.calculatePositionKey(address(positionManager), tickLower, tickUpper, bytes32(id));
+
+            (uint128 liquidity, uint256 feeGrowthInside0LastX128, uint256 feeGrowthInside1LastX128) =
+                poolManager.getPositionInfo(poolId, positionId);
+
             // Fee
             (uint256 feeGrowthInside0X128, uint256 feeGrowthInside1X128) =
                 poolManager.getFeeGrowthInside(poolId, tickLower, tickUpper);
 
             unchecked {
-                token0Amount +=
+                state.token0Amount +=
                     FullMath.mulDiv(feeGrowthInside0X128 - feeGrowthInside0LastX128, liquidity, FixedPoint128.Q128);
-                token1Amount +=
+                state.token1Amount +=
                     FullMath.mulDiv(feeGrowthInside1X128 - feeGrowthInside1LastX128, liquidity, FixedPoint128.Q128);
             }
 
             // Token in LP
             if (tick < tickLower) {
-                token0Amount += SqrtPriceMath.getAmount0Delta(
+                state.token0Amount += SqrtPriceMath.getAmount0Delta(
                     TickMath.getSqrtPriceAtTick(tickLower), TickMath.getSqrtPriceAtTick(tickUpper), liquidity, false
                 );
             } else if (tick < tickUpper) {
-                token0Amount += SqrtPriceMath.getAmount0Delta(
+                state.token0Amount += SqrtPriceMath.getAmount0Delta(
                     sqrtPriceX96, TickMath.getSqrtPriceAtTick(tickUpper), liquidity, false
                 );
-                token1Amount += SqrtPriceMath.getAmount1Delta(
+                state.token1Amount += SqrtPriceMath.getAmount1Delta(
                     TickMath.getSqrtPriceAtTick(tickLower), sqrtPriceX96, liquidity, false
                 );
             } else {
-                token1Amount += SqrtPriceMath.getAmount1Delta(
+                state.token1Amount += SqrtPriceMath.getAmount1Delta(
                     TickMath.getSqrtPriceAtTick(tickLower), TickMath.getSqrtPriceAtTick(tickUpper), liquidity, false
                 );
             }
         }
 
         (uint256 debtToken0Amount, uint256 margin0Requirement) =
-            quoteFungible(Currency.unwrap(poolKey.currency0), token0Amount);
+            quoteFungible(Currency.unwrap(poolKey.currency0), state.token0Amount);
         (uint256 debtToken1Amount, uint256 margin1Requirement) =
-            quoteFungible(Currency.unwrap(poolKey.currency1), token1Amount);
+            quoteFungible(Currency.unwrap(poolKey.currency1), state.token1Amount);
 
         debtTokenAmount = debtToken0Amount + debtToken1Amount;
         marginRequirement = margin0Requirement + margin1Requirement;
