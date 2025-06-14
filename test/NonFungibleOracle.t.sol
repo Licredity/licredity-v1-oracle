@@ -35,18 +35,31 @@ contract NonFungibleOracleTest is Deployers {
 
     function test_quoteNonFungible_ETHUSDC_zero() public {
         vm.expectRevert(NotSupportedNonFungible.selector);
-        oracle.quoteNonFungible(position, 23864);
+
+        address[] memory tokens = new address[](1);
+        tokens[0] = position;
+
+        uint256[] memory ids = new uint256[](1);
+        ids[0] = 23864;
+
+        oracle.quoteNonFungibles(tokens, ids);
     }
 
     function test_quoteNonFungible_ETHUSDC() public {
         oracle.updateNonFungiblePoolIdWhitelist(ETHUSDCPoolId);
+
+        address[] memory tokens = new address[](1);
+        tokens[0] = position;
+
+        uint256[] memory ids = new uint256[](1);
+        ids[0] = 23864;
 
         oracle.updateFungibleFeedsConfig(address(0), 10, ZERO_ORACLE, ZERO_ORACLE);
         oracle.updateFungibleFeedsConfig(
             USDC, 100, ZERO_ORACLE, AggregatorV3Interface(address(0x5147eA642CAEF7BD9c1265AadcA78f997AbB9649))
         );
         // ETH / USDC = 2602.68440965, debt ETH / ETH = 0.984375
-        (uint256 debtTokenAmount,) = oracle.quoteNonFungible(position, 23864);
+        (uint256 debtTokenAmount,) = oracle.quoteNonFungibles(tokens, ids);
         // assertEq(debtTokenAmount, 4903006588562427069110 + 3421468981784);
         assertApproxEqAbsDecimal(debtTokenAmount, 4826397110616138448896 + 1294051832199103643648, 1e6, 18);
     }
