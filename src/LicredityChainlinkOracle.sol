@@ -85,16 +85,16 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
         owner = newOwner;
     }
 
-    function getBasePrice() public view returns (uint256) {
+    function quotePrice() public view returns (uint256) {
         return emaPrice;
     }
 
     /// @notice Returns the number of debt tokens that can be exchanged for the assets.
     function quoteFungible(address fungible, uint256 amount)
-        public
+        internal
+        view
         returns (uint256 debtTokenAmount, uint256 marginRequirement)
     {
-        update();
         if (fungible == licredity) {
             debtTokenAmount = amount;
             marginRequirement = 0;
@@ -116,16 +116,34 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
         }
     }
 
+    function quoteFungibles(address[] calldata fungibles, uint256[] calldata amounts)
+        external
+        returns (uint256 value, uint256 marginRequirement)
+    {
+        update();
+        uint256 count = fungibles.length;
+
+        for (uint256 i = 0; i < count; i++) {
+            address fungible = fungibles[i];
+            uint256 amount = amounts[i];
+
+            (uint256 _value, uint256 _marginRequirement) = quoteFungible(fungible, amount);
+
+            value += _value;
+            marginRequirement += _marginRequirement;
+        }
+    }
+
     struct PositionState {
         uint256 token0Amount;
         uint256 token1Amount;
     }
 
     function quoteNonFungible(address token, uint256 id)
-        external
+        internal
+        view
         returns (uint256 debtTokenAmount, uint256 marginRequirement)
     {
-        update();
         require(token == address(positionManager), NotSupportedNonFungible());
 
         (PoolKey memory poolKey, PositionInfo positionInfo) = positionManager.getPoolAndPositionInfo(id);
@@ -185,6 +203,24 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
 
         debtTokenAmount = debtToken0Amount + debtToken1Amount;
         marginRequirement = margin0Requirement + margin1Requirement;
+    }
+
+    function quoteNonFungibles(address[] memory tokens, uint256[] memory ids)
+        external
+        returns (uint256 value, uint256 marginRequirement)
+    {
+        update();
+        uint256 count = tokens.length;
+
+        for (uint256 i = 0; i < count; i++) {
+            address token = tokens[i];
+            uint256 id = ids[i];
+
+            (uint256 _value, uint256 _marginRequirement) = quoteNonFungible(token, id);
+
+            value += _value;
+            marginRequirement += _marginRequirement;
+        }
     }
 
     function update() public {

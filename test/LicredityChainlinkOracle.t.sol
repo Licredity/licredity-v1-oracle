@@ -65,7 +65,7 @@ contract LicredityChainlinkOracleTest is Deployers {
         oracle.update();
         uint256 emaPriceFromFFI = getOraclePriceFromFFI(1 << 96, nowSqrtPrice, 1);
 
-        assertApproxEqAbsDecimal(oracle.getBasePrice(), emaPriceFromFFI, 1e4, 18);
+        assertApproxEqAbsDecimal(oracle.quotePrice(), emaPriceFromFFI, 1e4, 18);
     }
 
     function test_oracleUpdate_maxTime() public asLicredity {
@@ -76,7 +76,7 @@ contract LicredityChainlinkOracleTest is Deployers {
         oracle.update();
 
         uint256 emaPriceFromFFI = getOraclePriceFromFFI(1 << 96, nowSqrtPrice, 6000);
-        assertApproxEqAbsDecimal(oracle.getBasePrice(), emaPriceFromFFI, 1e4, 18);
+        assertApproxEqAbsDecimal(oracle.quotePrice(), emaPriceFromFFI, 1e4, 18);
     }
 
     function test_oracleUpdate_normal() public asLicredity {
@@ -86,7 +86,7 @@ contract LicredityChainlinkOracleTest is Deployers {
         oracle.update();
 
         uint256 emaPriceFromFFI = getOraclePriceFromFFI(1 << 96, nowSqrtPrice, 42);
-        assertApproxEqAbsDecimal(oracle.getBasePrice(), emaPriceFromFFI, 1e4, 18);
+        assertApproxEqAbsDecimal(oracle.quotePrice(), emaPriceFromFFI, 1e4, 18);
     }
 
     function test_oracleUpdate_multiple() public asLicredity {
@@ -97,7 +97,7 @@ contract LicredityChainlinkOracleTest is Deployers {
         oracle.update();
 
         uint256 emaPriceFromFFI = getOraclePriceFromFFI(1 << 96, nowSqrtPrice, 42);
-        assertApproxEqAbsDecimal(oracle.getBasePrice(), emaPriceFromFFI, 1e4, 18);
+        assertApproxEqAbsDecimal(oracle.quotePrice(), emaPriceFromFFI, 1e4, 18);
 
         skip(6000);
         nowSqrtPrice = 79843750678802117044226490368; // update price = 1.0156
@@ -105,18 +105,31 @@ contract LicredityChainlinkOracleTest is Deployers {
         oracle.update();
 
         emaPriceFromFFI = getOraclePriceFromFFI(oracle.lastPriceX96(), nowSqrtPrice, 6000);
-        assertApproxEqAbsDecimal(oracle.getBasePrice(), emaPriceFromFFI, 1e4, 18);
+        assertApproxEqAbsDecimal(oracle.quotePrice(), emaPriceFromFFI, 1e4, 18);
     }
 
-    function test_quoteNonExistToken(address asset, uint256 amount) public {
-        vm.assume(asset != licredityFungible);
+    function test_quoteNonExistToken(address[] calldata fungibles, uint256[] calldata amounts) public {
+        vm.assume(fungibles.length > 1);
+        vm.assume(fungibles.length < amounts.length);
+
         vm.expectRevert(NotSupportedFungible.selector);
-        oracle.quoteFungible(asset, amount);
+        oracle.quoteFungibles(fungibles, amounts);
     }
 
-    function test_quoteFungibleDebtToken(uint256 amount) public {
-        (uint256 value, uint256 marginRequirement) = oracle.quoteFungible(licredityFungible, amount);
-        assertEq(value, amount);
+    function test_quoteFungibleDebtToken(uint64[] calldata amounts) public {
+        vm.assume(amounts.length < 5);
+        uint256 sumAmount;
+        address[] memory onlyLicredityFungible = new address[](amounts.length);
+        uint256[] memory fungibleAmount = new uint256[](amounts.length);
+
+        for (uint256 i = 0; i < amounts.length; i++) {
+            sumAmount += amounts[i];
+            onlyLicredityFungible[i] = licredityFungible;
+            fungibleAmount[i] = amounts[i];
+        }
+
+        (uint256 value, uint256 marginRequirement) = oracle.quoteFungibles(onlyLicredityFungible, fungibleAmount);
+        assertEq(value, sumAmount);
         assertEq(marginRequirement, 0);
     }
 
@@ -124,7 +137,13 @@ contract LicredityChainlinkOracleTest is Deployers {
         oracle.updateFungibleFeedsConfig(address(usd), 1000, AggregatorV3Interface(address(0)), ethUSD);
         uniswapV4Mock.setPoolIdSqrtPriceX96(mockPoolId, 1 << 96);
 
-        (uint256 value, uint256 marginRequirement) = oracle.quoteFungible(address(usd), 262341076816);
+        address[] memory tokens = new address[](1);
+        tokens[0] = address(usd);
+
+        uint256[] memory amounts = new uint256[](1);
+        amounts[0] = 262341076816;
+
+        (uint256 value, uint256 marginRequirement) = oracle.quoteFungibles(tokens, amounts);
 
         assertEq(value, 1 ether);
         assertEq(marginRequirement, 0.1 ether);
@@ -134,7 +153,13 @@ contract LicredityChainlinkOracleTest is Deployers {
         oracle.updateFungibleFeedsConfig(address(btc), 100, btcETH, AggregatorV3Interface(address(0)));
         uniswapV4Mock.setPoolIdSqrtPriceX96(mockPoolId, 1 << 96);
 
-        (uint256 value, uint256 marginRequirement) = oracle.quoteFungible(address(btc), 1e8);
+        address[] memory tokens = new address[](1);
+        tokens[0] = address(btc);
+
+        uint256[] memory amounts = new uint256[](1);
+        amounts[0] = 1e8;
+
+        (uint256 value, uint256 marginRequirement) = oracle.quoteFungibles(tokens, amounts);
         assertEq(value, 40446685000000000000);
         assertEq(marginRequirement, 40446685000000000000 / 100);
     }
