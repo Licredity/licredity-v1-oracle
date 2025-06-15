@@ -99,7 +99,7 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
             debtTokenAmount = amount;
             marginRequirement = 0;
         } else {
-            uint16 mrrBps = feeds[fungible].mrrBps;
+            uint24 mrrPips = feeds[fungible].mrrPips;
             uint256 scaleFactor = feeds[fungible].scaleFactor;
 
             require(scaleFactor != 0, NotSupportedFungible());
@@ -112,7 +112,7 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
                 amount * config.baseFeed.getPrice(), config.quoteFeed.getPrice() * 1e36
             );
 
-            marginRequirement = debtTokenAmount.mulUnitUp(mrrBps);
+            marginRequirement = debtTokenAmount.mulPipsUp(mrrPips);
         }
     }
 
@@ -258,7 +258,7 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
 
     function updateFungibleFeedsConfig(
         address asset,
-        uint16 mrrBps,
+        uint24 mrrPips,
         AggregatorV3Interface baseFeed,
         AggregatorV3Interface quoteFeed
     ) external onlyOwner {
@@ -268,9 +268,9 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
         uint256 scaleFactor =
             10 ** (18 + quoteFeed.getDecimals() + debtTokenDecimals - baseFeed.getDecimals() - assetTokenDecimals);
 
-        feeds[asset] = FeedsConfig({mrrBps: mrrBps, scaleFactor: scaleFactor, baseFeed: baseFeed, quoteFeed: quoteFeed});
+        feeds[asset] = FeedsConfig({mrrPips: mrrPips, scaleFactor: scaleFactor, baseFeed: baseFeed, quoteFeed: quoteFeed});
 
-        emit FeedsUpdated(asset, mrrBps, baseFeed, quoteFeed);
+        emit FeedsUpdated(asset, mrrPips, baseFeed, quoteFeed);
     }
 
     function deleteFungibleFeedsConfig(address asset) external onlyOwner {

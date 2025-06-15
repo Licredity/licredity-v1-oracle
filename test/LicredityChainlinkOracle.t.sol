@@ -134,7 +134,7 @@ contract LicredityChainlinkOracleTest is Deployers {
     }
 
     function test_quoteFungibleEthUsd() public {
-        oracle.updateFungibleFeedsConfig(address(usd), 1000, AggregatorV3Interface(address(0)), ethUSD);
+        oracle.updateFungibleFeedsConfig(address(usd), 100000, AggregatorV3Interface(address(0)), ethUSD);
         uniswapV4Mock.setPoolIdSqrtPriceX96(mockPoolId, 1 << 96);
 
         address[] memory tokens = new address[](1);
@@ -150,7 +150,7 @@ contract LicredityChainlinkOracleTest is Deployers {
     }
 
     function test_quoteFungibleBtcEth() public {
-        oracle.updateFungibleFeedsConfig(address(btc), 100, btcETH, AggregatorV3Interface(address(0)));
+        oracle.updateFungibleFeedsConfig(address(btc), 10000, btcETH, AggregatorV3Interface(address(0)));
         uniswapV4Mock.setPoolIdSqrtPriceX96(mockPoolId, 1 << 96);
 
         address[] memory tokens = new address[](1);

@@ -12,7 +12,7 @@ interface ILicredityChainlinkOracle is IOracle {
     /// @param baseFeed Base feed
     /// @param quoteFeed Quote feed
     event FeedsUpdated(
-        address indexed asset, uint16 mrrBps, AggregatorV3Interface baseFeed, AggregatorV3Interface quoteFeed
+        address indexed asset, uint24 mrrPips, AggregatorV3Interface baseFeed, AggregatorV3Interface quoteFeed
     );
 
     /// @notice Event emitted when the old feeds are deleted
@@ -30,7 +30,7 @@ interface ILicredityChainlinkOracle is IOracle {
     /// @dev The implementation automatically multiplies the base fee calculation result by the debtToken/token price.
     function updateFungibleFeedsConfig(
         address asset,
-        uint16 mrrBps,
+        uint24 mrrPips,
         AggregatorV3Interface baseFeed,
         AggregatorV3Interface quoteFeed
     ) external;
