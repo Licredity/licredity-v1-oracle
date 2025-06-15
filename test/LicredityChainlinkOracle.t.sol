@@ -7,6 +7,7 @@ import {Deployers} from "./Deployers.sol";
 import {PoolId} from "v4-core/types/PoolId.sol";
 import {IPoolManager} from "v4-core/interfaces/IPoolManager.sol";
 import {IPositionManager} from "src/interfaces/IPositionManager.sol";
+import {stdMath} from "forge-std/StdMath.sol";
 
 contract LicredityChainlinkOracleTest is Deployers {
     error NotSupportedFungible();
@@ -108,6 +109,28 @@ contract LicredityChainlinkOracleTest is Deployers {
         assertApproxEqAbsDecimal(oracle.quotePrice(), emaPriceFromFFI, 1e4, 18);
     }
 
+    struct OralceUpdate {
+        uint128 nowPriceX96;
+        uint16 skipTime;
+    }
+
+    function test_oracleUpdate_fuzz(OralceUpdate[] calldata data) public asLicredity {
+        for (uint256 i = 0; i < data.length; i++) {
+            uint256 beforePrice = oracle.quotePrice();
+            if (data[i].skipTime == 0) {
+                skip(1);
+            } else {
+                skip(data[i].skipTime);
+            }
+            uniswapV4Mock.setPoolIdSqrtPriceX96(mockPoolId, data[i].nowPriceX96);
+            oracle.update();
+            uint256 afterPrice = oracle.quotePrice();
+
+            uint256 delta = stdMath.percentDelta(beforePrice, afterPrice);
+            assertLt(delta, 0.016625 ether);
+        }
+    }
+    
     function test_quoteNonExistToken(address[] calldata fungibles, uint256[] calldata amounts) public {
         vm.assume(fungibles.length > 1);
         vm.assume(fungibles.length < amounts.length);
