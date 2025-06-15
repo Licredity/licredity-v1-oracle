@@ -3,7 +3,6 @@ pragma solidity >=0.8.0;
 
 import {AggregatorV3Interface} from "./AggregatorV3Interface.sol";
 import {IOracle} from "./IOracle.sol";
-import {NonFungible} from "../types/NonFungible.sol";
 import {PoolId} from "v4-core/types/PoolId.sol";
 
 interface ILicredityChainlinkOracle is IOracle {

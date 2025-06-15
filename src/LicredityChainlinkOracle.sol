@@ -5,7 +5,6 @@ import {ILicredityChainlinkOracle} from "./interfaces/ILicredityChainlinkOracle.
 import {IERC20Minimal} from "./interfaces/IERC20Minimal.sol";
 import {AggregatorV3Interface} from "./interfaces/AggregatorV3Interface.sol";
 import {FungibleLibrary} from "./types/Fungible.sol";
-import {NonFungible} from "./types/NonFungible.sol";
 import {PositionInfo} from "./types/PositionInfo.sol";
 import {ChainlinkDataFeedLib} from "./libraries/ChainlinkDataFeedLib.sol";
 import {FeedsConfig} from "./libraries/FeedsConfig.sol";

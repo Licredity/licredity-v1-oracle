@@ -2,7 +2,6 @@
 pragma solidity ^0.8.20;
 
 import {LicredityChainlinkOracle} from "src/LicredityChainlinkOracle.sol";
-import {NonFungible} from "src/types/NonFungible.sol";
 import {Deployers} from "./Deployers.sol";
 import {PoolId} from "v4-core/types/PoolId.sol";
 import {IPoolManager} from "v4-core/interfaces/IPoolManager.sol";
