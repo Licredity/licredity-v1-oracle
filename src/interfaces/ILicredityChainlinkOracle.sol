@@ -3,7 +3,6 @@ pragma solidity >=0.8.0;
 
 import {AggregatorV3Interface} from "./AggregatorV3Interface.sol";
 import {IOracle} from "./IOracle.sol";
-import {NonFungible} from "../types/NonFungible.sol";
 import {PoolId} from "v4-core/types/PoolId.sol";
 
 interface ILicredityChainlinkOracle is IOracle {
@@ -12,7 +11,7 @@ interface ILicredityChainlinkOracle is IOracle {
     /// @param baseFeed Base feed
     /// @param quoteFeed Quote feed
     event FeedsUpdated(
-        address indexed asset, uint16 mrrBps, AggregatorV3Interface baseFeed, AggregatorV3Interface quoteFeed
+        address indexed asset, uint24 mrrPips, AggregatorV3Interface baseFeed, AggregatorV3Interface quoteFeed
     );
 
     /// @notice Event emitted when the old feeds are deleted
@@ -30,7 +29,7 @@ interface ILicredityChainlinkOracle is IOracle {
     /// @dev The implementation automatically multiplies the base fee calculation result by the debtToken/token price.
     function updateFungibleFeedsConfig(
         address asset,
-        uint16 mrrBps,
+        uint24 mrrPips,
         AggregatorV3Interface baseFeed,
         AggregatorV3Interface quoteFeed
     ) external;
