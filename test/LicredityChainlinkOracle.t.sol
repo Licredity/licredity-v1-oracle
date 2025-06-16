@@ -3,6 +3,7 @@ pragma solidity ^0.8.20;
 
 import {AggregatorV3Interface} from "src/interfaces/AggregatorV3Interface.sol";
 import {LicredityChainlinkOracle} from "src/LicredityChainlinkOracle.sol";
+import {Fungible} from "src/types/Fungible.sol";
 import {Deployers} from "./Deployers.sol";
 import {PoolId} from "v4-core/types/PoolId.sol";
 import {IPoolManager} from "v4-core/interfaces/IPoolManager.sol";
@@ -130,8 +131,8 @@ contract LicredityChainlinkOracleTest is Deployers {
             assertLt(delta, 0.016625 ether);
         }
     }
-    
-    function test_quoteNonExistToken(address[] calldata fungibles, uint256[] calldata amounts) public {
+
+    function test_quoteNonExistToken(Fungible[] calldata fungibles, uint256[] calldata amounts) public {
         vm.assume(fungibles.length > 1);
         vm.assume(fungibles.length < amounts.length);
 
@@ -142,12 +143,12 @@ contract LicredityChainlinkOracleTest is Deployers {
     function test_quoteFungibleDebtToken(uint64[] calldata amounts) public {
         vm.assume(amounts.length < 5);
         uint256 sumAmount;
-        address[] memory onlyLicredityFungible = new address[](amounts.length);
+        Fungible[] memory onlyLicredityFungible = new Fungible[](amounts.length);
         uint256[] memory fungibleAmount = new uint256[](amounts.length);
 
         for (uint256 i = 0; i < amounts.length; i++) {
             sumAmount += amounts[i];
-            onlyLicredityFungible[i] = licredityFungible;
+            onlyLicredityFungible[i] = Fungible.wrap(licredityFungible);
             fungibleAmount[i] = amounts[i];
         }
 
@@ -157,32 +158,32 @@ contract LicredityChainlinkOracleTest is Deployers {
     }
 
     function test_quoteFungibleEthUsd() public {
-        oracle.updateFungibleFeedsConfig(address(usd), 100000, AggregatorV3Interface(address(0)), ethUSD);
+        oracle.updateFungibleFeedsConfig(Fungible.wrap(address(usd)), 100000, AggregatorV3Interface(address(0)), ethUSD);
         uniswapV4Mock.setPoolIdSqrtPriceX96(mockPoolId, 1 << 96);
 
-        address[] memory tokens = new address[](1);
-        tokens[0] = address(usd);
+        Fungible[] memory fungibles = new Fungible[](1);
+        fungibles[0] = Fungible.wrap(address(usd));
 
         uint256[] memory amounts = new uint256[](1);
         amounts[0] = 262341076816;
 
-        (uint256 value, uint256 marginRequirement) = oracle.quoteFungibles(tokens, amounts);
+        (uint256 value, uint256 marginRequirement) = oracle.quoteFungibles(fungibles, amounts);
 
         assertEq(value, 1 ether);
         assertEq(marginRequirement, 0.1 ether);
     }
 
     function test_quoteFungibleBtcEth() public {
-        oracle.updateFungibleFeedsConfig(address(btc), 10000, btcETH, AggregatorV3Interface(address(0)));
+        oracle.updateFungibleFeedsConfig(Fungible.wrap(address(btc)), 10000, btcETH, AggregatorV3Interface(address(0)));
         uniswapV4Mock.setPoolIdSqrtPriceX96(mockPoolId, 1 << 96);
 
-        address[] memory tokens = new address[](1);
-        tokens[0] = address(btc);
+        Fungible[] memory fungibles = new Fungible[](1);
+        fungibles[0] = Fungible.wrap(address(btc));
 
         uint256[] memory amounts = new uint256[](1);
         amounts[0] = 1e8;
 
-        (uint256 value, uint256 marginRequirement) = oracle.quoteFungibles(tokens, amounts);
+        (uint256 value, uint256 marginRequirement) = oracle.quoteFungibles(fungibles, amounts);
         assertEq(value, 40446685000000000000);
         assertEq(marginRequirement, 40446685000000000000 / 100);
     }

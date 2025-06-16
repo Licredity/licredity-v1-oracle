@@ -2,6 +2,8 @@
 pragma solidity ^0.8.20;
 
 import {LicredityChainlinkOracle} from "src/LicredityChainlinkOracle.sol";
+import {Fungible} from "src/types/Fungible.sol";
+import {NonFungible} from "src/types/NonFungible.sol";
 import {Deployers} from "./Deployers.sol";
 import {PoolId} from "v4-core/types/PoolId.sol";
 import {IPoolManager} from "v4-core/interfaces/IPoolManager.sol";
@@ -32,33 +34,36 @@ contract NonFungibleOracleTest is Deployers {
         );
     }
 
+    function getFungible(uint256 tokenId) public pure returns (NonFungible nft) {
+        assembly ("memory-safe") {
+            nft := or(0xbd216513d74c8cf14cf4747e6aaa6420ff64ee9e000000000000000000000000, tokenId)
+        }
+    }
+
     function test_quoteNonFungible_ETHUSDC_zero() public {
+        NonFungible nft = getFungible(23864);
+        NonFungible[] memory nonFungibles = new NonFungible[](1);
+        nonFungibles[0] = nft;
+
         vm.expectRevert(NotSupportedNonFungible.selector);
 
-        address[] memory tokens = new address[](1);
-        tokens[0] = position;
-
-        uint256[] memory ids = new uint256[](1);
-        ids[0] = 23864;
-
-        oracle.quoteNonFungibles(tokens, ids);
+        oracle.quoteNonFungibles(nonFungibles);
     }
 
     function test_quoteNonFungible_ETHUSDC() public {
+        NonFungible nft = getFungible(23864);
+
         oracle.updateNonFungiblePoolIdWhitelist(ETHUSDCPoolId);
 
-        address[] memory tokens = new address[](1);
-        tokens[0] = position;
+        NonFungible[] memory nonFungibles = new NonFungible[](1);
+        nonFungibles[0] = nft;
 
-        uint256[] memory ids = new uint256[](1);
-        ids[0] = 23864;
-
-        oracle.updateFungibleFeedsConfig(address(0), 10, ZERO_ORACLE, ZERO_ORACLE);
+        oracle.updateFungibleFeedsConfig(Fungible.wrap(address(0)), 10, ZERO_ORACLE, ZERO_ORACLE);
         oracle.updateFungibleFeedsConfig(
-            USDC, 100, ZERO_ORACLE, AggregatorV3Interface(address(0x5147eA642CAEF7BD9c1265AadcA78f997AbB9649))
+            Fungible.wrap(USDC), 100, ZERO_ORACLE, AggregatorV3Interface(address(0x5147eA642CAEF7BD9c1265AadcA78f997AbB9649))
         );
         // ETH / USDC = 2602.68440965, debt ETH / ETH = 0.984375
-        (uint256 debtTokenAmount,) = oracle.quoteNonFungibles(tokens, ids);
+        (uint256 debtTokenAmount,) = oracle.quoteNonFungibles(nonFungibles);
         // assertEq(debtTokenAmount, 4903006588562427069110 + 3421468981784);
         assertApproxEqAbsDecimal(debtTokenAmount, 4826397110616138448896 + 1294051832199103643648, 1e6, 18);
     }

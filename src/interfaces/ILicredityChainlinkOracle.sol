@@ -4,6 +4,7 @@ pragma solidity >=0.8.0;
 import {AggregatorV3Interface} from "./AggregatorV3Interface.sol";
 import {IOracle} from "./IOracle.sol";
 import {PoolId} from "v4-core/types/PoolId.sol";
+import {Fungible} from "../types/Fungible.sol";
 
 interface ILicredityChainlinkOracle is IOracle {
     /// @notice Event emitted when the new feeds are set
@@ -11,12 +12,12 @@ interface ILicredityChainlinkOracle is IOracle {
     /// @param baseFeed Base feed
     /// @param quoteFeed Quote feed
     event FeedsUpdated(
-        address indexed asset, uint24 mrrPips, AggregatorV3Interface baseFeed, AggregatorV3Interface quoteFeed
+        Fungible indexed asset, uint24 mrrPips, AggregatorV3Interface baseFeed, AggregatorV3Interface quoteFeed
     );
 
     /// @notice Event emitted when the old feeds are deleted
     /// @param asset The address of the asset
-    event FeedsDeleted(address indexed asset);
+    event FeedsDeleted(Fungible indexed asset);
 
     /// @notice Event emitted when the pool ID whitelist is updated
     /// @param id The pool ID
@@ -28,7 +29,7 @@ interface ILicredityChainlinkOracle is IOracle {
     /// @param quoteFeed Quote feed. Pass address zero if the price = 1
     /// @dev The implementation automatically multiplies the base fee calculation result by the debtToken/token price.
     function updateFungibleFeedsConfig(
-        address asset,
+        Fungible asset,
         uint24 mrrPips,
         AggregatorV3Interface baseFeed,
         AggregatorV3Interface quoteFeed
@@ -36,7 +37,7 @@ interface ILicredityChainlinkOracle is IOracle {
 
     /// @notice Delete the oracle configuration
     /// @param asset The address of the asset
-    function deleteFungibleFeedsConfig(address asset) external;
+    function deleteFungibleFeedsConfig(Fungible asset) external;
 
     /// @notice Add NFTs with specific pool IDs to the whitelist
     /// @param id Pool ID
