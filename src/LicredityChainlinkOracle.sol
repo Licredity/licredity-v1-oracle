@@ -28,7 +28,6 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
     using StateLibrary for IPoolManager;
 
     error NotLicredity();
-    error NotSupportedFungible();
     error NotSupportedNonFungible();
     error NotUniswapV4Position();
     error NotOwner();
@@ -91,22 +90,19 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
     function quoteFungible(Fungible fungible, uint256 amount)
         internal
         view
-        returns (bool isCollateral, uint256 debtTokenAmount, uint256 marginRequirement)
+        returns (uint256 debtTokenAmount, uint256 marginRequirement)
     {
         if (fungible == Fungible.wrap(licredity)) {
             debtTokenAmount = amount;
             marginRequirement = 0;
-            isCollateral = true;
         } else {
             uint24 mrrPips = feeds[fungible].mrrPips;
             uint256 scaleFactor = feeds[fungible].scaleFactor;
 
-            // require(scaleFactor != 0, NotSupportedFungible());
             if (scaleFactor == 0) {
-                return (false, 0, 0);
+                return (0, 0);
             }
 
-            isCollateral = true;
             FeedsConfig memory config = feeds[fungible];
 
             // If asset is token, need to set both baseFeed and quoteFeed of token to zero addresses
@@ -130,9 +126,7 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
             Fungible fungible = fungibles[i];
             uint256 amount = amounts[i];
 
-            (bool isCollateral, uint256 _value, uint256 _marginRequirement) = quoteFungible(fungible, amount);
-            
-            require(isCollateral, NotSupportedFungible());
+            (uint256 _value, uint256 _marginRequirement) = quoteFungible(fungible, amount);
             
             value += _value;
             marginRequirement += _marginRequirement;
@@ -204,9 +198,9 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
             }
         }
 
-        (, uint256 debtToken0Amount, uint256 margin0Requirement) =
+        (uint256 debtToken0Amount, uint256 margin0Requirement) =
             quoteFungible(Fungible.wrap(Currency.unwrap(poolKey.currency0)), state.token0Amount);
-        (, uint256 debtToken1Amount, uint256 margin1Requirement) =
+        (uint256 debtToken1Amount, uint256 margin1Requirement) =
             quoteFungible(Fungible.wrap(Currency.unwrap(poolKey.currency1)), state.token1Amount);
 
         debtTokenAmount = debtToken0Amount + debtToken1Amount;

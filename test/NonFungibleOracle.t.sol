@@ -46,7 +46,6 @@ contract NonFungibleOracleTest is Deployers {
         nonFungibles[0] = nft;
 
         vm.expectRevert(NotSupportedNonFungible.selector);
-
         oracle.quoteNonFungibles(nonFungibles);
     }
 

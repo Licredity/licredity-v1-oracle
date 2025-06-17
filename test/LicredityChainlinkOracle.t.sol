@@ -136,8 +136,9 @@ contract LicredityChainlinkOracleTest is Deployers {
         vm.assume(fungibles.length > 1);
         vm.assume(fungibles.length < amounts.length);
 
-        vm.expectRevert(NotSupportedFungible.selector);
-        oracle.quoteFungibles(fungibles, amounts);
+        (uint256 value, uint256 marginRequirement) = oracle.quoteFungibles(fungibles, amounts);
+        assertEq(value, 0);
+        assertEq(marginRequirement, 0);
     }
 
     function test_quoteFungibleDebtToken(uint64[] calldata amounts) public {
