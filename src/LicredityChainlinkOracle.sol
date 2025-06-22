@@ -2,9 +2,8 @@
 pragma solidity =0.8.30;
 
 import {ILicredityChainlinkOracle} from "./interfaces/ILicredityChainlinkOracle.sol";
-import {IERC20Minimal} from "./interfaces/IERC20Minimal.sol";
 import {AggregatorV3Interface} from "./interfaces/AggregatorV3Interface.sol";
-import {FungibleLibrary} from "./types/Fungible.sol";
+import {Fungible} from "./types/Fungible.sol";
 import {NonFungible} from "./types/NonFungible.sol";
 import {PositionInfo} from "./types/PositionInfo.sol";
 import {ChainlinkDataFeedLib} from "./libraries/ChainlinkDataFeedLib.sol";
@@ -23,14 +22,12 @@ import {IPositionManager} from "./interfaces/IPositionManager.sol";
 import {StateLibrary} from "v4-core/libraries/StateLibrary.sol";
 
 contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
-    using FungibleLibrary for address;
     using FixedPointMath for int256;
     using FixedPointMath for uint256;
     using ChainlinkDataFeedLib for AggregatorV3Interface;
     using StateLibrary for IPoolManager;
 
     error NotLicredity();
-    error NotSupportedFungible();
     error NotSupportedNonFungible();
     error NotUniswapV4Position();
     error NotOwner();
@@ -47,7 +44,7 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
     uint256 public lastUpdateTimeStamp;
     uint256 public currentTimeStamp;
 
-    mapping(address => FeedsConfig) public feeds;
+    mapping(Fungible => FeedsConfig) public feeds;
     mapping(PoolId => bool) public nonFungiblePoolIdWhitelist;
 
     constructor(
@@ -85,24 +82,26 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
         owner = newOwner;
     }
 
-    function getBasePrice() public view returns (uint256) {
+    function quotePrice() public view returns (uint256) {
         return emaPrice;
     }
 
     /// @notice Returns the number of debt tokens that can be exchanged for the assets.
-    function quoteFungible(address fungible, uint256 amount)
-        public
+    function quoteFungible(Fungible fungible, uint256 amount)
+        internal
+        view
         returns (uint256 debtTokenAmount, uint256 marginRequirement)
     {
-        update();
-        if (fungible == licredity) {
+        if (fungible == Fungible.wrap(licredity)) {
             debtTokenAmount = amount;
             marginRequirement = 0;
         } else {
-            uint16 mrrBps = feeds[fungible].mrrBps;
+            uint24 mrrPips = feeds[fungible].mrrPips;
             uint256 scaleFactor = feeds[fungible].scaleFactor;
 
-            require(scaleFactor != 0, NotSupportedFungible());
+            if (scaleFactor == 0) {
+                return (0, 0);
+            }
 
             FeedsConfig memory config = feeds[fungible];
 
@@ -112,7 +111,25 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
                 amount * config.baseFeed.getPrice(), config.quoteFeed.getPrice() * 1e36
             );
 
-            marginRequirement = debtTokenAmount.mulUnitUp(mrrBps);
+            marginRequirement = debtTokenAmount.mulPipsUp(mrrPips);
+        }
+    }
+
+    function quoteFungibles(Fungible[] calldata fungibles, uint256[] calldata amounts)
+        external
+        returns (uint256 value, uint256 marginRequirement)
+    {
+        update();
+        uint256 count = fungibles.length;
+
+        for (uint256 i = 0; i < count; i++) {
+            Fungible fungible = fungibles[i];
+            uint256 amount = amounts[i];
+
+            (uint256 _value, uint256 _marginRequirement) = quoteFungible(fungible, amount);
+            
+            value += _value;
+            marginRequirement += _marginRequirement;
         }
     }
 
@@ -121,11 +138,14 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
         uint256 token1Amount;
     }
 
-    function quoteNonFungible(address token, uint256 id)
-        external
+    function quoteNonFungible(NonFungible nonFungible)
+        internal
+        view
         returns (uint256 debtTokenAmount, uint256 marginRequirement)
     {
-        update();
+        address token = nonFungible.token();
+        uint256 id = nonFungible.id();
+
         require(token == address(positionManager), NotSupportedNonFungible());
 
         (PoolKey memory poolKey, PositionInfo positionInfo) = positionManager.getPoolAndPositionInfo(id);
@@ -179,12 +199,27 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
         }
 
         (uint256 debtToken0Amount, uint256 margin0Requirement) =
-            quoteFungible(Currency.unwrap(poolKey.currency0), state.token0Amount);
+            quoteFungible(Fungible.wrap(Currency.unwrap(poolKey.currency0)), state.token0Amount);
         (uint256 debtToken1Amount, uint256 margin1Requirement) =
-            quoteFungible(Currency.unwrap(poolKey.currency1), state.token1Amount);
+            quoteFungible(Fungible.wrap(Currency.unwrap(poolKey.currency1)), state.token1Amount);
 
         debtTokenAmount = debtToken0Amount + debtToken1Amount;
         marginRequirement = margin0Requirement + margin1Requirement;
+    }
+
+    function quoteNonFungibles(NonFungible[] memory nonFungibles)
+        external
+        returns (uint256 value, uint256 marginRequirement)
+    {
+        update();
+        uint256 count = nonFungibles.length;
+
+        for (uint256 i = 0; i < count; i++) {
+            (uint256 _value, uint256 _marginRequirement) = quoteNonFungible(nonFungibles[i]);
+
+            value += _value;
+            marginRequirement += _marginRequirement;
+        }
     }
 
     function update() public {
@@ -221,23 +256,24 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
     }
 
     function updateFungibleFeedsConfig(
-        address asset,
-        uint16 mrrBps,
+        Fungible asset,
+        uint24 mrrPips,
         AggregatorV3Interface baseFeed,
         AggregatorV3Interface quoteFeed
     ) external onlyOwner {
         uint8 assetTokenDecimals = asset.decimals();
-        uint8 debtTokenDecimals = licredity.decimals();
+        uint8 debtTokenDecimals = Fungible.wrap(licredity).decimals();
 
         uint256 scaleFactor =
             10 ** (18 + quoteFeed.getDecimals() + debtTokenDecimals - baseFeed.getDecimals() - assetTokenDecimals);
 
-        feeds[asset] = FeedsConfig({mrrBps: mrrBps, scaleFactor: scaleFactor, baseFeed: baseFeed, quoteFeed: quoteFeed});
+        feeds[asset] =
+            FeedsConfig({mrrPips: mrrPips, scaleFactor: scaleFactor, baseFeed: baseFeed, quoteFeed: quoteFeed});
 
-        emit FeedsUpdated(asset, mrrBps, baseFeed, quoteFeed);
+        emit FeedsUpdated(asset, mrrPips, baseFeed, quoteFeed);
     }
 
-    function deleteFungibleFeedsConfig(address asset) external onlyOwner {
+    function deleteFungibleFeedsConfig(Fungible asset) external onlyOwner {
         delete feeds[asset];
 
         emit FeedsDeleted(asset);

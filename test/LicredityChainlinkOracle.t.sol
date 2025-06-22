@@ -3,10 +3,12 @@ pragma solidity ^0.8.20;
 
 import {AggregatorV3Interface} from "src/interfaces/AggregatorV3Interface.sol";
 import {LicredityChainlinkOracle} from "src/LicredityChainlinkOracle.sol";
+import {Fungible} from "src/types/Fungible.sol";
 import {Deployers} from "./Deployers.sol";
 import {PoolId} from "v4-core/types/PoolId.sol";
 import {IPoolManager} from "v4-core/interfaces/IPoolManager.sol";
 import {IPositionManager} from "src/interfaces/IPositionManager.sol";
+import {stdMath} from "forge-std/StdMath.sol";
 
 contract LicredityChainlinkOracleTest is Deployers {
     error NotSupportedFungible();
@@ -65,7 +67,7 @@ contract LicredityChainlinkOracleTest is Deployers {
         oracle.update();
         uint256 emaPriceFromFFI = getOraclePriceFromFFI(1 << 96, nowSqrtPrice, 1);
 
-        assertApproxEqAbsDecimal(oracle.getBasePrice(), emaPriceFromFFI, 1e4, 18);
+        assertApproxEqAbsDecimal(oracle.quotePrice(), emaPriceFromFFI, 1e4, 18);
     }
 
     function test_oracleUpdate_maxTime() public asLicredity {
@@ -76,7 +78,7 @@ contract LicredityChainlinkOracleTest is Deployers {
         oracle.update();
 
         uint256 emaPriceFromFFI = getOraclePriceFromFFI(1 << 96, nowSqrtPrice, 6000);
-        assertApproxEqAbsDecimal(oracle.getBasePrice(), emaPriceFromFFI, 1e4, 18);
+        assertApproxEqAbsDecimal(oracle.quotePrice(), emaPriceFromFFI, 1e4, 18);
     }
 
     function test_oracleUpdate_normal() public asLicredity {
@@ -86,7 +88,7 @@ contract LicredityChainlinkOracleTest is Deployers {
         oracle.update();
 
         uint256 emaPriceFromFFI = getOraclePriceFromFFI(1 << 96, nowSqrtPrice, 42);
-        assertApproxEqAbsDecimal(oracle.getBasePrice(), emaPriceFromFFI, 1e4, 18);
+        assertApproxEqAbsDecimal(oracle.quotePrice(), emaPriceFromFFI, 1e4, 18);
     }
 
     function test_oracleUpdate_multiple() public asLicredity {
@@ -97,7 +99,7 @@ contract LicredityChainlinkOracleTest is Deployers {
         oracle.update();
 
         uint256 emaPriceFromFFI = getOraclePriceFromFFI(1 << 96, nowSqrtPrice, 42);
-        assertApproxEqAbsDecimal(oracle.getBasePrice(), emaPriceFromFFI, 1e4, 18);
+        assertApproxEqAbsDecimal(oracle.quotePrice(), emaPriceFromFFI, 1e4, 18);
 
         skip(6000);
         nowSqrtPrice = 79843750678802117044226490368; // update price = 1.0156
@@ -105,36 +107,84 @@ contract LicredityChainlinkOracleTest is Deployers {
         oracle.update();
 
         emaPriceFromFFI = getOraclePriceFromFFI(oracle.lastPriceX96(), nowSqrtPrice, 6000);
-        assertApproxEqAbsDecimal(oracle.getBasePrice(), emaPriceFromFFI, 1e4, 18);
+        assertApproxEqAbsDecimal(oracle.quotePrice(), emaPriceFromFFI, 1e4, 18);
     }
 
-    function test_quoteNonExistToken(address asset, uint256 amount) public {
-        vm.assume(asset != licredityFungible);
-        vm.expectRevert(NotSupportedFungible.selector);
-        oracle.quoteFungible(asset, amount);
+    struct OralceUpdate {
+        uint128 nowPriceX96;
+        uint16 skipTime;
     }
 
-    function test_quoteFungibleDebtToken(uint256 amount) public {
-        (uint256 value, uint256 marginRequirement) = oracle.quoteFungible(licredityFungible, amount);
-        assertEq(value, amount);
+    function test_oracleUpdate_fuzz(OralceUpdate[] calldata data) public asLicredity {
+        for (uint256 i = 0; i < data.length; i++) {
+            uint256 beforePrice = oracle.quotePrice();
+            if (data[i].skipTime == 0) {
+                skip(1);
+            } else {
+                skip(data[i].skipTime);
+            }
+            uniswapV4Mock.setPoolIdSqrtPriceX96(mockPoolId, data[i].nowPriceX96);
+            oracle.update();
+            uint256 afterPrice = oracle.quotePrice();
+
+            uint256 delta = stdMath.percentDelta(beforePrice, afterPrice);
+            assertLt(delta, 0.016625 ether);
+        }
+    }
+
+    function test_quoteNonExistToken(Fungible[] calldata fungibles, uint256[] calldata amounts) public {
+        vm.assume(fungibles.length > 1);
+        vm.assume(fungibles.length < amounts.length);
+
+        (uint256 value, uint256 marginRequirement) = oracle.quoteFungibles(fungibles, amounts);
+        assertEq(value, 0);
+        assertEq(marginRequirement, 0);
+    }
+
+    function test_quoteFungibleDebtToken(uint64[] calldata amounts) public {
+        vm.assume(amounts.length < 5);
+        uint256 sumAmount;
+        Fungible[] memory onlyLicredityFungible = new Fungible[](amounts.length);
+        uint256[] memory fungibleAmount = new uint256[](amounts.length);
+
+        for (uint256 i = 0; i < amounts.length; i++) {
+            sumAmount += amounts[i];
+            onlyLicredityFungible[i] = Fungible.wrap(licredityFungible);
+            fungibleAmount[i] = amounts[i];
+        }
+
+        (uint256 value, uint256 marginRequirement) = oracle.quoteFungibles(onlyLicredityFungible, fungibleAmount);
+        assertEq(value, sumAmount);
         assertEq(marginRequirement, 0);
     }
 
     function test_quoteFungibleEthUsd() public {
-        oracle.updateFungibleFeedsConfig(address(usd), 1000, AggregatorV3Interface(address(0)), ethUSD);
+        oracle.updateFungibleFeedsConfig(Fungible.wrap(address(usd)), 100000, AggregatorV3Interface(address(0)), ethUSD);
         uniswapV4Mock.setPoolIdSqrtPriceX96(mockPoolId, 1 << 96);
 
-        (uint256 value, uint256 marginRequirement) = oracle.quoteFungible(address(usd), 262341076816);
+        Fungible[] memory fungibles = new Fungible[](1);
+        fungibles[0] = Fungible.wrap(address(usd));
+
+        uint256[] memory amounts = new uint256[](1);
+        amounts[0] = 262341076816;
+
+        (uint256 value, uint256 marginRequirement) = oracle.quoteFungibles(fungibles, amounts);
 
         assertEq(value, 1 ether);
         assertEq(marginRequirement, 0.1 ether);
     }
 
     function test_quoteFungibleBtcEth() public {
-        oracle.updateFungibleFeedsConfig(address(btc), 100, btcETH, AggregatorV3Interface(address(0)));
+        oracle.updateFungibleFeedsConfig(Fungible.wrap(address(btc)), 10000, btcETH, AggregatorV3Interface(address(0)));
         uniswapV4Mock.setPoolIdSqrtPriceX96(mockPoolId, 1 << 96);
 
-        (uint256 value, uint256 marginRequirement) = oracle.quoteFungible(address(btc), 1e8);
+        Fungible[] memory fungibles = new Fungible[](1);
+        fungibles[0] = Fungible.wrap(address(btc));
+
+        uint256[] memory amounts = new uint256[](1);
+        amounts[0] = 1e8;
+
+        (uint256 value, uint256 marginRequirement) = oracle.quoteFungibles(fungibles, amounts);
         assertEq(value, 40446685000000000000);
         assertEq(marginRequirement, 40446685000000000000 / 100);
     }

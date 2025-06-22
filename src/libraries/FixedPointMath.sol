@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 library FixedPointMath {
-    uint16 internal constant UNIT_BASIS_POINTS = 10000;
+    uint24 internal constant UNIT_PIPS = 1_000_000;
 
     /// @dev Returns `exp(x)` in `X96`, denominated in `X96`. And x must be minusive.
     /// Credit to Remco Bloemen under MIT license: https://2π.com/22/exp-ln
@@ -137,10 +137,10 @@ library FixedPointMath {
     }
 
     /// @dev Equivalent to `(x * y) / UNIT_BASIS` rounded up.
-    function mulUnitUp(uint256 x, uint16 y) internal pure returns (uint256 z) {
+    function mulPipsUp(uint256 x, uint24 y) internal pure returns (uint256 z) {
         /// @solidity memory-safe-assembly
         assembly {
-            y := and(y, 0xffff)
+            y := and(y, 0xffffff)
             z := mul(x, y)
             // Equivalent to `require(y == 0 || x <= type(uint256).max / y)`.
             if iszero(eq(div(z, y), x)) {
@@ -149,7 +149,7 @@ library FixedPointMath {
                     revert(0x1c, 0x04)
                 }
             }
-            z := add(iszero(iszero(mod(z, UNIT_BASIS_POINTS))), div(z, UNIT_BASIS_POINTS))
+            z := add(iszero(iszero(mod(z, UNIT_PIPS))), div(z, UNIT_PIPS))
         }
     }
 }

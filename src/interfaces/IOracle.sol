@@ -1,27 +1,34 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.0;
 
+import {Fungible} from "../types/Fungible.sol";
+import {NonFungible} from "../types/NonFungible.sol";
+
 /// @title IOracle
 /// @notice Interface for the oracle contracts
 interface IOracle {
-    /// @notice Gets the price of the base fungible in debt fungible terms
-    /// @return uint256 The price of the base fungible in debt fungible terms
-    function getBasePrice() external view returns (uint256);
+    /// @notice Quotes the price of the base fungible in debt fungible
+    /// @return uint256 The price of the base fungible in debt fungible
+    /// @dev Price has 18 decimals
+    function quotePrice() external view returns (uint256);
 
-    /// @notice Function to get the value and margin requirement, in debt token terms, of some amount of fungible
-    /// @param token The address of the fungible to quote
-    /// @param amount The amount of fungible to quote
-    /// @return value The value of the fungible in debt token terms
-    /// @return marginRequirement The margin requirement in debt token terms
-    function quoteFungible(address token, uint256 amount) external returns (uint256 value, uint256 marginRequirement);
+    /// @notice Quotes the value and margin requirement for given fungibles
+    /// @param fungibles The fungibles to quote
+    /// @param amounts The amounts of fungibles to quote
+    /// @return value The total value of the fungibles in debt fungible
+    /// @return marginRequirement The total margin requirement of the fungibles in debt fungible
+    function quoteFungibles(Fungible[] memory fungibles, uint256[] memory amounts)
+        external
+        returns (uint256 value, uint256 marginRequirement);
 
-    /// @notice Function to get the value and margin requirement, in debt token terms, of a non-fungible
-    /// @param token The non-fungible token to quote
-    /// @param id The ID of the non-fungible token to quote
-    /// @return value The value of the non-fungible in debt token terms
-    /// @return marginRequirement The margin requirement in debt token terms
-    function quoteNonFungible(address token, uint256 id) external returns (uint256 value, uint256 marginRequirement);
+    /// @notice Quotes the value and margin requirement for given non-fungibles
+    /// @param nonFungibles The non-fungibles to quote
+    /// @return value The total value of the non-fungibles in debt fungible
+    /// @return marginRequirement The total margin requirement of the non-fungibles in debt fungible
+    function quoteNonFungibles(NonFungible[] memory nonFungibles)
+        external
+        returns (uint256 value, uint256 marginRequirement);
 
-    /// @notice Function to notify the oracle of a price update
+    /// @notice Triggers a price update
     function update() external;
 }
