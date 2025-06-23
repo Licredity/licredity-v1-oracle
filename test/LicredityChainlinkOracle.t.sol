@@ -12,6 +12,7 @@ import {stdMath} from "forge-std/StdMath.sol";
 
 contract LicredityChainlinkOracleTest is Deployers {
     error NotSupportedFungible();
+    error NotOwner();
 
     PoolId public mockPoolId;
     address public licredityFungible;
@@ -37,6 +38,18 @@ contract LicredityChainlinkOracleTest is Deployers {
     modifier asLicredity() {
         vm.startPrank(address(licredity));
         _;
+        vm.stopPrank();
+    }
+
+    function test_updateOwner() public {
+        oracle.updateOwner(address(1));
+        assertEq(oracle.owner(), address(1));
+    }
+
+    function test_updateOwner_notOwner() public {
+        vm.startPrank(address(1));
+        vm.expectRevert(NotOwner.selector);
+        oracle.updateOwner(address(1));
         vm.stopPrank();
     }
 
@@ -135,9 +148,17 @@ contract LicredityChainlinkOracleTest is Deployers {
     function test_quoteNonExistToken(Fungible[] calldata fungibles, uint256[] calldata amounts) public {
         vm.assume(fungibles.length > 1);
         vm.assume(fungibles.length < amounts.length);
+        uint256 debtTokenSum = 0;
+
+        for (uint256 i = 0; i < fungibles.length; i++) {
+            if (fungibles[i] == Fungible.wrap(licredityFungible)) {
+                debtTokenSum += amounts[i];
+            }
+        }
 
         (uint256 value, uint256 marginRequirement) = oracle.quoteFungibles(fungibles, amounts);
-        assertEq(value, 0);
+
+        assertEq(value, debtTokenSum);
         assertEq(marginRequirement, 0);
     }
 

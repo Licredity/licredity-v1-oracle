@@ -127,7 +127,7 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
             uint256 amount = amounts[i];
 
             (uint256 _value, uint256 _marginRequirement) = quoteFungible(fungible, amount);
-            
+
             value += _value;
             marginRequirement += _marginRequirement;
         }

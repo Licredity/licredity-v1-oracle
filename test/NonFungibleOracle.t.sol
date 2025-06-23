@@ -59,7 +59,10 @@ contract NonFungibleOracleTest is Deployers {
 
         oracle.updateFungibleFeedsConfig(Fungible.wrap(address(0)), 10, ZERO_ORACLE, ZERO_ORACLE);
         oracle.updateFungibleFeedsConfig(
-            Fungible.wrap(USDC), 100, ZERO_ORACLE, AggregatorV3Interface(address(0x5147eA642CAEF7BD9c1265AadcA78f997AbB9649))
+            Fungible.wrap(USDC),
+            100,
+            ZERO_ORACLE,
+            AggregatorV3Interface(address(0x5147eA642CAEF7BD9c1265AadcA78f997AbB9649))
         );
         // ETH / USDC = 2602.68440965, debt ETH / ETH = 0.984375
         (uint256 debtTokenAmount,) = oracle.quoteNonFungibles(nonFungibles);
