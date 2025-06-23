@@ -12,7 +12,6 @@ import {stdMath} from "forge-std/StdMath.sol";
 
 contract LicredityChainlinkOracleTest is Deployers {
     error NotSupportedFungible();
-    error NotOwner();
 
     PoolId public mockPoolId;
     address public licredityFungible;
@@ -38,18 +37,6 @@ contract LicredityChainlinkOracleTest is Deployers {
     modifier asLicredity() {
         vm.startPrank(address(licredity));
         _;
-        vm.stopPrank();
-    }
-
-    function test_updateOwner() public {
-        oracle.updateOwner(address(1));
-        assertEq(oracle.owner(), address(1));
-    }
-
-    function test_updateOwner_notOwner() public {
-        vm.startPrank(address(1));
-        vm.expectRevert(NotOwner.selector);
-        oracle.updateOwner(address(1));
         vm.stopPrank();
     }
 

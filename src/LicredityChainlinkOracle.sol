@@ -274,6 +274,7 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
     }
 
     function deleteFungibleFeedsConfig(Fungible asset) external onlyOwner {
+        // TODO: Check asset exist?
         delete feeds[asset];
 
         emit FeedsDeleted(asset);

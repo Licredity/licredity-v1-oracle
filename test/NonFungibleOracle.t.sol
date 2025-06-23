@@ -40,6 +40,20 @@ contract NonFungibleOracleTest is Deployers {
         }
     }
 
+    function test_quoteNonFungible_notPositionManager() public {
+        NonFungible nft;
+        assembly ("memory-safe") {
+            nft := or(0xcd216513d74c8cf14cf4747e6aaa6420ff64ee9e000000000000000000000000, 1)
+        }
+
+        vm.expectRevert(NotSupportedNonFungible.selector);
+
+        NonFungible[] memory nonFungibles = new NonFungible[](1);
+        nonFungibles[0] = nft;
+
+        oracle.quoteNonFungibles(nonFungibles);
+    }
+
     function test_quoteNonFungible_ETHUSDC_zero() public {
         NonFungible nft = getFungible(23864);
         NonFungible[] memory nonFungibles = new NonFungible[](1);
