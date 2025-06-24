@@ -27,14 +27,14 @@ library PositionValue {
         uint256 id,
         PositionInfo positionInfo,
         IPoolManager poolManager,
-        IPositionManager positionManager
+        address positionManager
     ) internal view returns (uint256 token0Amount, uint256 token1Amount) {
         PositionValueState memory state;
 
         int24 tickLower = positionInfo.tickLower();
         int24 tickUpper = positionInfo.tickUpper();
 
-        bytes32 positionId = Position.calculatePositionKey(address(positionManager), tickLower, tickUpper, bytes32(id));
+        bytes32 positionId = Position.calculatePositionKey(positionManager, tickLower, tickUpper, bytes32(id));
 
         // Fee
         uint128 liquidity;
@@ -58,10 +58,12 @@ library PositionValue {
                 TickMath.getSqrtPriceAtTick(tickLower), TickMath.getSqrtPriceAtTick(tickUpper), liquidity, false
             );
         } else if (state.tick < tickUpper) {
-            token0Amount +=
-                SqrtPriceMath.getAmount0Delta(state.sqrtPriceX96, TickMath.getSqrtPriceAtTick(tickUpper), liquidity, false);
-            token1Amount +=
-                SqrtPriceMath.getAmount1Delta(TickMath.getSqrtPriceAtTick(tickLower), state.sqrtPriceX96, liquidity, false);
+            token0Amount += SqrtPriceMath.getAmount0Delta(
+                state.sqrtPriceX96, TickMath.getSqrtPriceAtTick(tickUpper), liquidity, false
+            );
+            token1Amount += SqrtPriceMath.getAmount1Delta(
+                TickMath.getSqrtPriceAtTick(tickLower), state.sqrtPriceX96, liquidity, false
+            );
         } else {
             token1Amount += SqrtPriceMath.getAmount1Delta(
                 TickMath.getSqrtPriceAtTick(tickLower), TickMath.getSqrtPriceAtTick(tickUpper), liquidity, false
