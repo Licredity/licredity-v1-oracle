@@ -21,7 +21,7 @@ contract LicredityChainlinkOracleManageTest is Deployers {
 
     function setUp() public {
         deployLicredity();
-        deployUniswapV4Pool();
+        deployUniswapV4MockPool();
         deployMockChainlinkOracle();
 
         mockPoolId = PoolId.wrap(bytes32(hex"01"));
