@@ -148,7 +148,7 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
         require(nonFungiblePoolIdWhitelist[_poolId], NotSupportedNonFungible());
 
         (uint256 token0Amount, uint256 token1Amount) =
-            PositionValue.getPositionValue(_poolId, id, positionInfo, poolManager, positionManager);
+            PositionValue.getPositionValue(_poolId, id, positionInfo, poolManager, address(positionManager));
 
         (uint256 debtToken0Amount, uint256 margin0Requirement) =
             quoteFungible(Fungible.wrap(Currency.unwrap(poolKey.currency0)), token0Amount);
