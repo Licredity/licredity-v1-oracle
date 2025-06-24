@@ -9,14 +9,11 @@ import {PositionInfo} from "./types/PositionInfo.sol";
 import {ChainlinkDataFeedLib} from "./libraries/ChainlinkDataFeedLib.sol";
 import {FeedsConfig} from "./libraries/FeedsConfig.sol";
 import {FixedPointMath} from "./libraries/FixedPointMath.sol";
+import {PositionValue} from "./libraries/PositionValue.sol";
 import {PoolId} from "v4-core/types/PoolId.sol";
 import {PoolKey} from "v4-core/types/PoolKey.sol";
 import {Currency} from "v4-core/types/Currency.sol";
 import {Position} from "v4-core/libraries/Position.sol";
-import {FullMath} from "v4-core/libraries/FullMath.sol";
-import {TickMath} from "v4-core/libraries/TickMath.sol";
-import {FixedPoint128} from "v4-core/libraries/FixedPoint128.sol";
-import {SqrtPriceMath} from "v4-core/libraries/SqrtPriceMath.sol";
 import {IPoolManager} from "v4-core/interfaces/IPoolManager.sol";
 import {IPositionManager} from "./interfaces/IPositionManager.sol";
 import {StateLibrary} from "v4-core/libraries/StateLibrary.sol";
@@ -133,20 +130,16 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
         }
     }
 
-    struct PositionState {
-        uint256 token0Amount;
-        uint256 token1Amount;
-    }
-
     function quoteNonFungible(NonFungible nonFungible)
         internal
         view
         returns (uint256 debtTokenAmount, uint256 marginRequirement)
     {
-        address token = nonFungible.token();
+        {
+            address token = nonFungible.token();
+            require(token == address(positionManager), NotSupportedNonFungible());
+        }
         uint256 id = nonFungible.id();
-
-        require(token == address(positionManager), NotSupportedNonFungible());
 
         (PoolKey memory poolKey, PositionInfo positionInfo) = positionManager.getPoolAndPositionInfo(id);
 
@@ -154,54 +147,13 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
 
         require(nonFungiblePoolIdWhitelist[_poolId], NotSupportedNonFungible());
 
-        PositionState memory state;
-
-        {
-            (uint160 sqrtPriceX96, int24 tick,,) = poolManager.getSlot0(_poolId);
-
-            int24 tickLower = positionInfo.tickLower();
-            int24 tickUpper = positionInfo.tickUpper();
-
-            bytes32 positionId =
-                Position.calculatePositionKey(address(positionManager), tickLower, tickUpper, bytes32(id));
-
-            (uint128 liquidity, uint256 feeGrowthInside0LastX128, uint256 feeGrowthInside1LastX128) =
-                poolManager.getPositionInfo(poolId, positionId);
-
-            // Fee
-            (uint256 feeGrowthInside0X128, uint256 feeGrowthInside1X128) =
-                poolManager.getFeeGrowthInside(poolId, tickLower, tickUpper);
-
-            unchecked {
-                state.token0Amount +=
-                    FullMath.mulDiv(feeGrowthInside0X128 - feeGrowthInside0LastX128, liquidity, FixedPoint128.Q128);
-                state.token1Amount +=
-                    FullMath.mulDiv(feeGrowthInside1X128 - feeGrowthInside1LastX128, liquidity, FixedPoint128.Q128);
-            }
-
-            // Token in LP
-            if (tick < tickLower) {
-                state.token0Amount += SqrtPriceMath.getAmount0Delta(
-                    TickMath.getSqrtPriceAtTick(tickLower), TickMath.getSqrtPriceAtTick(tickUpper), liquidity, false
-                );
-            } else if (tick < tickUpper) {
-                state.token0Amount += SqrtPriceMath.getAmount0Delta(
-                    sqrtPriceX96, TickMath.getSqrtPriceAtTick(tickUpper), liquidity, false
-                );
-                state.token1Amount += SqrtPriceMath.getAmount1Delta(
-                    TickMath.getSqrtPriceAtTick(tickLower), sqrtPriceX96, liquidity, false
-                );
-            } else {
-                state.token1Amount += SqrtPriceMath.getAmount1Delta(
-                    TickMath.getSqrtPriceAtTick(tickLower), TickMath.getSqrtPriceAtTick(tickUpper), liquidity, false
-                );
-            }
-        }
+        (uint256 token0Amount, uint256 token1Amount) =
+            PositionValue.getPositionValue(_poolId, id, positionInfo, poolManager, positionManager);
 
         (uint256 debtToken0Amount, uint256 margin0Requirement) =
-            quoteFungible(Fungible.wrap(Currency.unwrap(poolKey.currency0)), state.token0Amount);
+            quoteFungible(Fungible.wrap(Currency.unwrap(poolKey.currency0)), token0Amount);
         (uint256 debtToken1Amount, uint256 margin1Requirement) =
-            quoteFungible(Fungible.wrap(Currency.unwrap(poolKey.currency1)), state.token1Amount);
+            quoteFungible(Fungible.wrap(Currency.unwrap(poolKey.currency1)), token1Amount);
 
         debtTokenAmount = debtToken0Amount + debtToken1Amount;
         marginRequirement = margin0Requirement + margin1Requirement;
@@ -274,7 +226,7 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
     }
 
     function deleteFungibleFeedsConfig(Fungible asset) external onlyOwner {
-        // TODO: Check asset exist?
+        // TODO: Check asset exist
         delete feeds[asset];
 
         emit FeedsDeleted(asset);
