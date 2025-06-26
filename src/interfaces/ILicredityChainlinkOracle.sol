@@ -11,13 +11,13 @@ interface ILicredityChainlinkOracle is IOracle {
     /// @param asset The address of the asset
     /// @param baseFeed Base feed
     /// @param quoteFeed Quote feed
-    event FeedsUpdated(
+    event FeedsUpdate(
         Fungible indexed asset, uint24 mrrPips, AggregatorV3Interface baseFeed, AggregatorV3Interface quoteFeed
     );
 
     /// @notice Event emitted when the old feeds are deleted
     /// @param asset The address of the asset
-    event FeedsDeleted(Fungible indexed asset);
+    event FeedsDelete(Fungible indexed asset);
 
     /// @notice Event emitted when the pool ID whitelist is updated
     /// @param id The pool ID

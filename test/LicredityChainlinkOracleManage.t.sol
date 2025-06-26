@@ -14,6 +14,7 @@ import {IERC20} from "forge-std/interfaces/IERC20.sol";
 
 contract LicredityChainlinkOracleManageTest is Deployers {
     error NotOwner();
+    error NotExistFungibleFeedConfig();
 
     LicredityChainlinkOracle public oracle;
     PoolId public mockPoolId;
@@ -49,45 +50,53 @@ contract LicredityChainlinkOracleManageTest is Deployers {
     }
 
     function test_updateFungibleFeedsConfig(
-        Fungible asset,
         uint8 decimals,
         uint24 mrrPips,
-        AggregatorV3Interface baseFeed,
         uint8 baseFeedDecimals,
-        AggregatorV3Interface quoteFeed,
         uint8 quoteFeedDecimals
     ) public {
         decimals = uint8(bound(decimals, 0, 36));
         baseFeedDecimals = uint8(bound(baseFeedDecimals, 0, 36));
         quoteFeedDecimals = uint8(bound(quoteFeedDecimals, 0, 36));
         vm.assume(18 + uint256(quoteFeedDecimals) + uint256(18) > (uint256(baseFeedDecimals) + uint256(decimals)));
-        vm.assume(address(baseFeed) != address(VM_ADDRESS));
-        vm.assume(address(baseFeed) != address(VM_ADDRESS));
-        if (address(baseFeed) != address(0)) {
-            vm.mockCall(
-                address(baseFeed),
-                abi.encodeWithSelector(AggregatorV3Interface.decimals.selector),
-                abi.encode(baseFeedDecimals)
-            );
-        }
 
-        if (address(quoteFeed) != address(0)) {
-            vm.mockCall(
-                address(quoteFeed),
-                abi.encodeWithSelector(AggregatorV3Interface.decimals.selector),
-                abi.encode(quoteFeedDecimals)
-            );
-        }
+        Fungible asset = Fungible.wrap(vm.addr(1));
+        AggregatorV3Interface baseFeed = AggregatorV3Interface(vm.addr(2));
+        AggregatorV3Interface quoteFeed = AggregatorV3Interface(vm.addr(3));
+
+        vm.mockCall(
+            address(baseFeed),
+            abi.encodeWithSelector(AggregatorV3Interface.decimals.selector),
+            abi.encode(baseFeedDecimals)
+        );
+
+        vm.mockCall(
+            address(quoteFeed),
+            abi.encodeWithSelector(AggregatorV3Interface.decimals.selector),
+            abi.encode(quoteFeedDecimals)
+        );
 
         vm.mockCall(Fungible.unwrap(asset), abi.encodeWithSelector(IERC20.decimals.selector), abi.encode(decimals));
         vm.expectEmit(true, false, false, true);
-        emit ILicredityChainlinkOracle.FeedsUpdated(asset, mrrPips, baseFeed, quoteFeed);
+        emit ILicredityChainlinkOracle.FeedsUpdate(asset, mrrPips, baseFeed, quoteFeed);
         oracle.updateFungibleFeedsConfig(asset, mrrPips, baseFeed, quoteFeed);
     }
 
+    function test_deleteFungibleFeedsConfig_NotExist(Fungible asset) public {
+        vm.expectRevert(NotExistFungibleFeedConfig.selector);
+        oracle.deleteFungibleFeedsConfig(asset);
+    }
+
     function test_deleteFungibleFeedsConfig(Fungible asset) public {
+        vm.assume(Fungible.unwrap(asset) != address(VM_ADDRESS));
+
+        vm.mockCall(Fungible.unwrap(asset), abi.encodeWithSelector(IERC20.decimals.selector), abi.encode(uint8(8)));
+        oracle.updateFungibleFeedsConfig(
+            asset, 10, AggregatorV3Interface(address(0)), AggregatorV3Interface(address(0))
+        );
+
         vm.expectEmit(true, false, false, false);
-        emit ILicredityChainlinkOracle.FeedsDeleted(asset);
+        emit ILicredityChainlinkOracle.FeedsDelete(asset);
         oracle.deleteFungibleFeedsConfig(asset);
     }
 

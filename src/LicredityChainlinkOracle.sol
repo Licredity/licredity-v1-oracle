@@ -28,6 +28,8 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
     error NotSupportedNonFungible();
     error NotUniswapV4Position();
     error NotOwner();
+    error NotExistFungibleFeedConfig();
+    error NotExistNonFungiblePoolIdWhitelist();
 
     PoolId public poolId;
     IPoolManager immutable poolManager;
@@ -222,14 +224,14 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
         feeds[asset] =
             FeedsConfig({mrrPips: mrrPips, scaleFactor: scaleFactor, baseFeed: baseFeed, quoteFeed: quoteFeed});
 
-        emit FeedsUpdated(asset, mrrPips, baseFeed, quoteFeed);
+        emit FeedsUpdate(asset, mrrPips, baseFeed, quoteFeed);
     }
 
     function deleteFungibleFeedsConfig(Fungible asset) external onlyOwner {
-        // TODO: Check asset exist
+        require(feeds[asset].scaleFactor != 0, NotExistFungibleFeedConfig());
         delete feeds[asset];
 
-        emit FeedsDeleted(asset);
+        emit FeedsDelete(asset);
     }
 
     function updateNonFungiblePoolIdWhitelist(PoolId id) external onlyOwner {
@@ -239,6 +241,7 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
     }
 
     function deleteNonFungiblePoolIdWhitelist(PoolId id) external onlyOwner {
+        require(nonFungiblePoolIdWhitelist[id], NotExistNonFungiblePoolIdWhitelist());
         delete nonFungiblePoolIdWhitelist[id];
 
         emit PoolIdWhitelistUpdated(id, false);
