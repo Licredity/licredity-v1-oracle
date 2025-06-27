@@ -15,6 +15,7 @@ import {IERC20} from "forge-std/interfaces/IERC20.sol";
 contract LicredityChainlinkOracleManageTest is Deployers {
     error NotOwner();
     error NotExistFungibleFeedConfig();
+    error NotExistNonFungiblePoolIdWhitelist();
 
     LicredityChainlinkOracle public oracle;
     PoolId public mockPoolId;
@@ -106,7 +107,14 @@ contract LicredityChainlinkOracleManageTest is Deployers {
         oracle.updateNonFungiblePoolIdWhitelist(id);
     }
 
+    function test_deleteNonFungiblePoolIdWhitelist_NotExist(PoolId id) public {
+        vm.expectRevert(NotExistNonFungiblePoolIdWhitelist.selector);
+        oracle.deleteNonFungiblePoolIdWhitelist(id);
+    }
+
     function test_deleteNonFungiblePoolIdWhitelist(PoolId id) public {
+        oracle.updateNonFungiblePoolIdWhitelist(id);
+
         vm.expectEmit(true, false, false, false);
         emit ILicredityChainlinkOracle.PoolIdWhitelistUpdated(id, false);
         oracle.deleteNonFungiblePoolIdWhitelist(id);
