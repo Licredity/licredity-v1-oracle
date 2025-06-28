@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {AggregatorV3Interface} from "src/interfaces/AggregatorV3Interface.sol";
+import {AggregatorV3Interface} from "src/interfaces/external/AggregatorV3Interface.sol";
 
 contract ChainlinkOracleMock is AggregatorV3Interface {
     uint8 public decimals;

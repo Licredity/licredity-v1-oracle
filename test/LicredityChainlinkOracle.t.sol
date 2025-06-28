@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.20;
 
-import {AggregatorV3Interface} from "src/interfaces/AggregatorV3Interface.sol";
+import {AggregatorV3Interface} from "src/interfaces/external/AggregatorV3Interface.sol";
 import {LicredityChainlinkOracle} from "src/LicredityChainlinkOracle.sol";
 import {Fungible} from "src/types/Fungible.sol";
 import {Deployers} from "./Deployers.sol";
 import {PoolId} from "v4-core/types/PoolId.sol";
 import {IPoolManager} from "v4-core/interfaces/IPoolManager.sol";
-import {IPositionManager} from "src/interfaces/IPositionManager.sol";
+import {IUniswapV4PositionManager} from "src/interfaces/external/IUniswapV4PositionManager.sol";
 import {stdMath} from "forge-std/StdMath.sol";
 
 contract LicredityChainlinkOracleTest is Deployers {
@@ -22,15 +22,11 @@ contract LicredityChainlinkOracleTest is Deployers {
         deployUniswapV4MockPool();
         deployMockChainlinkOracle();
 
+        IPoolManager v4Manager = IPoolManager(address(uniswapV4Mock));
         mockPoolId = PoolId.wrap(bytes32(hex"01"));
-        oracle = new LicredityChainlinkOracle(
-            address(licredity),
-            address(this),
-            mockPoolId,
-            IPoolManager(address(uniswapV4Mock)),
-            IPositionManager(address(0))
-        );
+        oracle = new LicredityChainlinkOracle(address(licredity), address(this), mockPoolId, v4Manager);
 
+        oracle.initUniswapV4PositionModule(v4Manager, IUniswapV4PositionManager(address(0)));
         licredityFungible = address(licredity);
     }
 
