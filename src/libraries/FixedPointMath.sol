@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+import {console} from "forge-std/console.sol";
+
 library FixedPointMath {
     uint24 internal constant UNIT_PIPS = 1_000_000;
 
@@ -57,13 +59,12 @@ library FixedPointMath {
                 // No scaling is necessary because p is already `2**96` too large.
                 r := sdiv(p, q)
             }
-
             // r should be in the range `(0.09, 0.25) * 2**96`.
 
             // We now need to multiply r by:
             // - The scale factor `s ≈ 6.031367120`.
             // - The `2**k` factor from the range reduction.
-            r = int256((uint256(r) * 128272992461204811344613777475675095040) >> uint256(124 - k));
+            r = int256((uint256(r) * 128272992461204820063543744878788300264) >> uint256(124 - k));
         }
     }
 
