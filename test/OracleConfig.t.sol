@@ -6,16 +6,15 @@ import {LicredityChainlinkOracle} from "src/LicredityChainlinkOracle.sol";
 import {Fungible} from "src/types/Fungible.sol";
 import {PoolId} from "v4-core/types/PoolId.sol";
 import {IPoolManager} from "v4-core/interfaces/IPoolManager.sol";
-import {IPositionManager} from "src/interfaces/IPositionManager.sol";
-import {AggregatorV3Interface} from "src/interfaces/AggregatorV3Interface.sol";
-import {ILicredityChainlinkOracle} from "src/interfaces/ILicredityChainlinkOracle.sol";
-import {AggregatorV3Interface} from "src/interfaces/AggregatorV3Interface.sol";
+import {IUniswapV4PositionManager} from "src/interfaces/external/IUniswapV4PositionManager.sol";
+import {AggregatorV3Interface} from "src/interfaces/external/AggregatorV3Interface.sol";
+import {IPositionConfig} from "src/interfaces/IPositionConfig.sol";
 import {IERC20} from "forge-std/interfaces/IERC20.sol";
 
 contract LicredityChainlinkOracleManageTest is Deployers {
-    error NotOwner();
+    error NotGovernor();
     error NotExistFungibleFeedConfig();
-    error NotExistNonFungiblePoolIdWhitelist();
+    error AlreadyInitialized();
 
     LicredityChainlinkOracle public oracle;
     PoolId public mockPoolId;
@@ -27,26 +26,21 @@ contract LicredityChainlinkOracleManageTest is Deployers {
         deployMockChainlinkOracle();
 
         mockPoolId = PoolId.wrap(bytes32(hex"01"));
-        oracle = new LicredityChainlinkOracle(
-            address(licredity),
-            address(this),
-            mockPoolId,
-            IPoolManager(address(uniswapV4Mock)),
-            IPositionManager(address(0))
-        );
+        oracle = new LicredityChainlinkOracle(address(licredity), address(this), mockPoolId, IPoolManager(address(0)));
 
         licredityFungible = address(licredity);
     }
 
-    function test_updateOwner() public {
-        oracle.updateOwner(address(1));
-        assertEq(oracle.owner(), address(1));
+    function test_updateGovernor() public {
+        vm.expectEmit(true, false, false, false);
+        emit IPositionConfig.UpdateGovernor(address(1));
+        oracle.updateGovernor(address(1));
     }
 
-    function test_updateOwner_notOwner() public {
+    function test_updateGovernor_notGovernor() public {
         vm.startPrank(address(1));
-        vm.expectRevert(NotOwner.selector);
-        oracle.updateOwner(address(1));
+        vm.expectRevert(NotGovernor.selector);
+        oracle.updateGovernor(address(1));
         vm.stopPrank();
     }
 
@@ -79,7 +73,7 @@ contract LicredityChainlinkOracleManageTest is Deployers {
 
         vm.mockCall(Fungible.unwrap(asset), abi.encodeWithSelector(IERC20.decimals.selector), abi.encode(decimals));
         vm.expectEmit(true, false, false, true);
-        emit ILicredityChainlinkOracle.FeedsUpdate(asset, mrrPips, baseFeed, quoteFeed);
+        emit IPositionConfig.FeedsUpdate(asset, mrrPips, baseFeed, quoteFeed);
         oracle.updateFungibleFeedsConfig(asset, mrrPips, baseFeed, quoteFeed);
     }
 
@@ -97,26 +91,37 @@ contract LicredityChainlinkOracleManageTest is Deployers {
         );
 
         vm.expectEmit(true, false, false, false);
-        emit ILicredityChainlinkOracle.FeedsDelete(asset);
+        emit IPositionConfig.FeedsDelete(asset);
         oracle.deleteFungibleFeedsConfig(asset);
     }
 
-    function test_updateNonFungiblePoolIdWhitelist(PoolId id) public {
-        vm.expectEmit(true, false, false, false);
-        emit ILicredityChainlinkOracle.PoolIdWhitelistUpdated(id, true);
-        oracle.updateNonFungiblePoolIdWhitelist(id);
+    function test_UniswapV4ModuleInit() public {
+        oracle.initUniswapV4PositionModule(
+            IPoolManager(address(0x000000000004444c5dc75cB358380D2e3dE08A90)),
+            IUniswapV4PositionManager(address(0xbD216513d74C8cf14cf4747E6AaA6420FF64ee9e))
+        );
     }
 
-    function test_deleteNonFungiblePoolIdWhitelist_NotExist(PoolId id) public {
-        vm.expectRevert(NotExistNonFungiblePoolIdWhitelist.selector);
-        oracle.deleteNonFungiblePoolIdWhitelist(id);
+    function test_UniswapV4ModuleInit_initalized() public {
+        oracle.initUniswapV4PositionModule(
+            IPoolManager(address(0x000000000004444c5dc75cB358380D2e3dE08A90)),
+            IUniswapV4PositionManager(address(0xbD216513d74C8cf14cf4747E6AaA6420FF64ee9e))
+        );
+
+        vm.expectRevert(AlreadyInitialized.selector);
+        oracle.initUniswapV4PositionModule(
+            IPoolManager(address(0x000000000004444c5dc75cB358380D2e3dE08A90)),
+            IUniswapV4PositionManager(address(0xbD216513d74C8cf14cf4747E6AaA6420FF64ee9e))
+        );
     }
 
-    function test_deleteNonFungiblePoolIdWhitelist(PoolId id) public {
-        oracle.updateNonFungiblePoolIdWhitelist(id);
+    function test_UniswapV4Module_update(PoolId poolId) public {
+        vm.expectEmit(true, false, false, true);
+        emit IPositionConfig.UniswapV4WhitelistUpdated(poolId, true);
+        oracle.setUniswapV4Whitelist(poolId, true);
 
-        vm.expectEmit(true, false, false, false);
-        emit ILicredityChainlinkOracle.PoolIdWhitelistUpdated(id, false);
-        oracle.deleteNonFungiblePoolIdWhitelist(id);
+        vm.expectEmit(true, false, false, true);
+        emit IPositionConfig.UniswapV4WhitelistUpdated(poolId, false);
+        oracle.setUniswapV4Whitelist(poolId, false);
     }
 }
