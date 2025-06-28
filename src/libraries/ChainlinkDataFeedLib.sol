@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.0;
 
-import {AggregatorV3Interface} from "../interfaces/AggregatorV3Interface.sol";
+import {AggregatorV3Interface} from "../interfaces/external/AggregatorV3Interface.sol";
 
 /// @title ChainlinkDataFeedLib
 /// @notice Library exposing functions to interact with a Chainlink-compliant feed.

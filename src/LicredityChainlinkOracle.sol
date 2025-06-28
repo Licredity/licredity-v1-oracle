@@ -2,40 +2,30 @@
 pragma solidity =0.8.30;
 
 import {ILicredityChainlinkOracle} from "./interfaces/ILicredityChainlinkOracle.sol";
-import {AggregatorV3Interface} from "./interfaces/AggregatorV3Interface.sol";
+import {AggregatorV3Interface} from "./interfaces/external/AggregatorV3Interface.sol";
+import {OracleConfig} from "./OracleConfig.sol";
 import {Fungible} from "./types/Fungible.sol";
 import {NonFungible} from "./types/NonFungible.sol";
-import {PositionInfo} from "./types/PositionInfo.sol";
+import {PositionValue} from "./types/PositionValue.sol";
 import {ChainlinkDataFeedLib} from "./libraries/ChainlinkDataFeedLib.sol";
-import {FeedsConfig} from "./libraries/FeedsConfig.sol";
 import {FixedPointMath} from "./libraries/FixedPointMath.sol";
-import {PositionValue} from "./libraries/PositionValue.sol";
+import {FeedsConfig} from "./libraries/FeedsConfig.sol";
 import {PoolId} from "v4-core/types/PoolId.sol";
-import {PoolKey} from "v4-core/types/PoolKey.sol";
-import {Currency} from "v4-core/types/Currency.sol";
-import {Position} from "v4-core/libraries/Position.sol";
 import {IPoolManager} from "v4-core/interfaces/IPoolManager.sol";
-import {IPositionManager} from "./interfaces/IPositionManager.sol";
 import {StateLibrary} from "v4-core/libraries/StateLibrary.sol";
 
-contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
+contract LicredityChainlinkOracle is ILicredityChainlinkOracle, OracleConfig {
     using FixedPointMath for int256;
     using FixedPointMath for uint256;
+
     using ChainlinkDataFeedLib for AggregatorV3Interface;
     using StateLibrary for IPoolManager;
 
-    error NotLicredity();
     error NotSupportedNonFungible();
     error NotUniswapV4Position();
-    error NotOwner();
-    error NotExistFungibleFeedConfig();
-    error NotExistNonFungiblePoolIdWhitelist();
 
     PoolId public poolId;
     IPoolManager immutable poolManager;
-    IPositionManager immutable positionManager;
-    address public licredity;
-    address public owner;
 
     uint256 public lastPriceX96;
     uint256 public currentPriceX96;
@@ -43,21 +33,9 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
     uint256 public lastUpdateTimeStamp;
     uint256 public currentTimeStamp;
 
-    mapping(Fungible => FeedsConfig) public feeds;
-    mapping(PoolId => bool) public nonFungiblePoolIdWhitelist;
-
-    constructor(
-        address licredity_,
-        address owner_,
-        PoolId poolId_,
-        IPoolManager poolManager_,
-        IPositionManager positionManager_
-    ) {
-        licredity = licredity_;
-        owner = owner_;
+    constructor(address licredity_, address owner_, PoolId poolId_, IPoolManager poolManager_) OracleConfig(licredity_, owner_) {
         poolId = poolId_;
         poolManager = poolManager_;
-        positionManager = positionManager_;
 
         lastUpdateTimeStamp = block.timestamp;
         currentTimeStamp = block.timestamp;
@@ -65,20 +43,6 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
         currentPriceX96 = 1 << 96;
         lastPriceX96 = 1 << 96;
         emaPrice = 1e18;
-    }
-
-    modifier onlyLicredity() {
-        require(msg.sender == licredity, NotLicredity());
-        _;
-    }
-
-    modifier onlyOwner() {
-        require(msg.sender == owner, NotOwner());
-        _;
-    }
-
-    function updateOwner(address newOwner) external onlyOwner {
-        owner = newOwner;
     }
 
     function quotePrice() public view returns (uint256) {
@@ -137,25 +101,17 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
         view
         returns (uint256 debtTokenAmount, uint256 marginRequirement)
     {
-        {
-            address token = nonFungible.token();
-            require(token == address(positionManager), NotSupportedNonFungible());
+        /// dispatch to other modules using token address
+        address token = nonFungible.token();
+        PositionValue memory position;
+        if (address(token) == address(uniswapV4PositionState.positionManager)) {
+            position = uniswapV4PositionState.getPositionValue(nonFungible);
+        } else {
+            revert NotSupportedNonFungible();
         }
-        uint256 id = nonFungible.id();
 
-        (PoolKey memory poolKey, PositionInfo positionInfo) = positionManager.getPoolAndPositionInfo(id);
-
-        PoolId _poolId = poolKey.toId();
-
-        require(nonFungiblePoolIdWhitelist[_poolId], NotSupportedNonFungible());
-
-        (uint256 token0Amount, uint256 token1Amount) =
-            PositionValue.getPositionValue(_poolId, id, positionInfo, poolManager, address(positionManager));
-
-        (uint256 debtToken0Amount, uint256 margin0Requirement) =
-            quoteFungible(Fungible.wrap(Currency.unwrap(poolKey.currency0)), token0Amount);
-        (uint256 debtToken1Amount, uint256 margin1Requirement) =
-            quoteFungible(Fungible.wrap(Currency.unwrap(poolKey.currency1)), token1Amount);
+        (uint256 debtToken0Amount, uint256 margin0Requirement) = quoteFungible(position.token0, position.token0Amount);
+        (uint256 debtToken1Amount, uint256 margin1Requirement) = quoteFungible(position.token1, position.token1Amount);
 
         debtTokenAmount = debtToken0Amount + debtToken1Amount;
         marginRequirement = margin0Requirement + margin1Requirement;
@@ -207,43 +163,5 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle {
         // Update lastPriceX96 and emaPrice
         currentPriceX96 = emaPriceX96;
         emaPrice = (emaPriceX96 * 1e18) >> 96;
-    }
-
-    function updateFungibleFeedsConfig(
-        Fungible asset,
-        uint24 mrrPips,
-        AggregatorV3Interface baseFeed,
-        AggregatorV3Interface quoteFeed
-    ) external onlyOwner {
-        uint8 assetTokenDecimals = asset.decimals();
-        uint8 debtTokenDecimals = Fungible.wrap(licredity).decimals();
-
-        uint256 scaleFactor =
-            10 ** (18 + quoteFeed.getDecimals() + debtTokenDecimals - baseFeed.getDecimals() - assetTokenDecimals);
-
-        feeds[asset] =
-            FeedsConfig({mrrPips: mrrPips, scaleFactor: scaleFactor, baseFeed: baseFeed, quoteFeed: quoteFeed});
-
-        emit FeedsUpdate(asset, mrrPips, baseFeed, quoteFeed);
-    }
-
-    function deleteFungibleFeedsConfig(Fungible asset) external onlyOwner {
-        require(feeds[asset].scaleFactor != 0, NotExistFungibleFeedConfig());
-        delete feeds[asset];
-
-        emit FeedsDelete(asset);
-    }
-
-    function updateNonFungiblePoolIdWhitelist(PoolId id) external onlyOwner {
-        nonFungiblePoolIdWhitelist[id] = true;
-
-        emit PoolIdWhitelistUpdated(id, true);
-    }
-
-    function deleteNonFungiblePoolIdWhitelist(PoolId id) external onlyOwner {
-        require(nonFungiblePoolIdWhitelist[id], NotExistNonFungiblePoolIdWhitelist());
-        delete nonFungiblePoolIdWhitelist[id];
-
-        emit PoolIdWhitelistUpdated(id, false);
     }
 }
