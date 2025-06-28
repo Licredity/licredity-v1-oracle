@@ -33,7 +33,9 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle, OracleConfig {
     uint256 public lastUpdateTimeStamp;
     uint256 public currentTimeStamp;
 
-    constructor(address licredity_, address owner_, PoolId poolId_, IPoolManager poolManager_) OracleConfig(licredity_, owner_) {
+    constructor(address licredity_, address owner_, PoolId poolId_, IPoolManager poolManager_)
+        OracleConfig(licredity_, owner_)
+    {
         poolId = poolId_;
         poolManager = poolManager_;
 

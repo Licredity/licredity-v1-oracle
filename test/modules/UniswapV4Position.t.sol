@@ -25,8 +25,9 @@ contract NonFungibleOracleFuzz is Deployers, Fuzzers {
     PoolId simplePoolId; // id for vanilla pool key
     UniswapV4PositionState state;
 
-    IUniswapV4PositionManager mockPositionManager = IUniswapV4PositionManager(address(0xeA846a10166d59Ee037d1214623749a677bb6a31));
-    
+    IUniswapV4PositionManager mockPositionManager =
+        IUniswapV4PositionManager(address(0xeA846a10166d59Ee037d1214623749a677bb6a31));
+
     function setUp() public {
         deployFreshManagerAndRouters();
         deployMintAndApprove2Currencies();

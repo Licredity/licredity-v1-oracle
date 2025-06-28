@@ -13,6 +13,7 @@ import {AggregatorV3Interface} from "src/interfaces/external/AggregatorV3Interfa
 contract NonFungibleOracleTest is Deployers {
     error NotSupportedUniswapV4Pool();
     error NotSupportedNonFungible();
+
     LicredityChainlinkOracle public oracle;
     PoolId public ETHUSDCPoolId;
     AggregatorV3Interface public constant ZERO_ORACLE = AggregatorV3Interface(address(0));
@@ -29,8 +30,7 @@ contract NonFungibleOracleTest is Deployers {
         oracle = new LicredityChainlinkOracle(address(licredity), address(this), ETHUSDCPoolId, v4Manager);
 
         oracle.initUniswapV4PositionModule(
-            v4Manager,
-            IUniswapV4PositionManager(address(0xbD216513d74C8cf14cf4747E6AaA6420FF64ee9e))
+            v4Manager, IUniswapV4PositionManager(address(0xbD216513d74C8cf14cf4747E6AaA6420FF64ee9e))
         );
     }
 
