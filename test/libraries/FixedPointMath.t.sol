@@ -69,9 +69,7 @@ contract FixedPointMathTest is Test {
             // - The `1e18 / 2**96` factor for base conversion.
             // We do this all at once, with an intermediate result in `2**213`
             // basis, so the final right shift is always by a positive amount.
-            r = int256(
-                (uint256(r) * 3822833074963236453042738258902158003155416615667) >> uint256(195 - k)
-            );
+            r = int256((uint256(r) * 3822833074963236453042738258902158003155416615667) >> uint256(195 - k));
         }
     }
 
@@ -83,13 +81,13 @@ contract FixedPointMathTest is Test {
         assertEq(expWad(0), 1 ether);
         assertEq(FixedPointMath.expWadX96(0), 1 << 96);
     }
-    function test_expWadX96(int256 xWad) public {
+
+    function test_expWadX96(int256 xWad) public view {
         vm.assume(xWad < 0);
         vm.assume(xWad > -1461501637330902918203684832716283019655932542976);
-        
+
         int256 x96 = (xWad << 78) / 5 ** 18;
 
-        // int256 resr = FixedPointMath.expWadX96(x96);
         (bool success0, bytes memory result0) =
             address(this).staticcall(abi.encodeWithSignature("expWadX96(int256)", x96));
         (bool success1, bytes memory result1) =
@@ -97,10 +95,41 @@ contract FixedPointMathTest is Test {
 
         assertEq(success0, success1);
         if (success0) {
-            int256 expWadRes  = abi.decode(result1, (int256));
+            int256 expWadRes = abi.decode(result1, (int256));
             int256 wadRes = (expWadRes << 78) / 5 ** 18;
 
             assertApproxEqRel(abi.decode(result0, (int256)), wadRes, 0.01 ether);
+        }
+    }
+
+    /// @dev Returns `ceil(x * y / d)`.
+    /// Reverts if `x * y` overflows, or `d` is zero.
+    function mulDivUp(uint256 x, uint256 y, uint256 d) public pure returns (uint256 z) {
+        /// @solidity memory-safe-assembly
+        assembly {
+            z := mul(x, y)
+            // Equivalent to `require(d != 0 && (y == 0 || x <= type(uint256).max / y))`.
+            if iszero(mul(or(iszero(x), eq(div(z, x), y)), d)) {
+                mstore(0x00, 0xad251c27) // `MulDivFailed()`.
+                revert(0x1c, 0x04)
+            }
+            z := add(iszero(iszero(mod(z, d))), div(z, d))
+        }
+    }
+
+    function mulPipsUp(uint256 x, uint24 y) public pure returns (uint256 z) {
+        return FixedPointMath.mulPipsUp(x, y);
+    }
+
+    function test_mulPipsUp(uint256 x, uint256 y) public view {
+        (bool success0, bytes memory result0) =
+            address(this).staticcall(abi.encodeWithSignature("mulDivUp(uint256, uint256, uint256)", x, y, 1_000_000));
+        (bool success1, bytes memory result1) =
+            address(this).staticcall(abi.encodeWithSignature("mulPipsUp(uint256, uint256)", x, y));
+
+        assertEq(success0, success1);
+        if (success0) {
+            assertEq(abi.decode(result0, (uint256)), abi.decode(result1, (uint256)));
         }
     }
 }
