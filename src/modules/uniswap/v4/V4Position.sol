@@ -31,6 +31,10 @@ library UniswapV4PositionLibrary {
     error NotSupportedUniswapV4Pool();
     error AlreadyInitialized();
 
+    /// @notice Initialize the module
+    /// @param state The Uniswap V4 position module state
+    /// @param poolManager The Uniswap V4 pool manager
+    /// @param positionManager The Uniswap V4 position manager
     function init(
         UniswapV4PositionState storage state,
         IPoolManager poolManager,
@@ -42,6 +46,10 @@ library UniswapV4PositionLibrary {
         state.positionManager = positionManager;
     }
 
+    /// @notice Update the Uniswap V4 pool whitelist
+    /// @param state The Uniswap V4 position module state
+    /// @param poolId The Uniswap V4 pool id
+    /// @param enabled Whether the pool is whitelisted. If true, the pool is whitelisted
     function updateV4PoolWhitelist(UniswapV4PositionState storage state, PoolId poolId, bool enabled) internal {
         state.positionWhitelist[poolId] = enabled;
     }
@@ -53,6 +61,10 @@ library UniswapV4PositionLibrary {
         int24 tick;
     }
 
+    /// @notice Get the value of a non-fungible
+    /// @param state The Uniswap V4 position module state
+    /// @param nonFungible The LP position non-fungible to get the value of
+    /// @return position The value of the position
     function getPositionValue(UniswapV4PositionState storage state, NonFungible nonFungible)
         internal
         view
@@ -63,7 +75,8 @@ library UniswapV4PositionLibrary {
 
         PositionComputations memory computation;
 
-        uint256 id = nonFungible.id();
+        // Check if the pool is whitelisted
+        uint256 id = nonFungible.tokenId();
         (PoolKey memory poolKey, PositionInfo positionInfo) = positionManager.getPoolAndPositionInfo(id);
         PoolId poolId = poolKey.toId();
         require(state.positionWhitelist[poolId], NotSupportedUniswapV4Pool());
@@ -95,6 +108,7 @@ library UniswapV4PositionLibrary {
             );
         }
 
+        // Token in LP position
         if (computation.tick < tickLower) {
             position.token0Amount += SqrtPriceMath.getAmount0Delta(
                 TickMath.getSqrtPriceAtTick(tickLower), TickMath.getSqrtPriceAtTick(tickUpper), liquidity, false

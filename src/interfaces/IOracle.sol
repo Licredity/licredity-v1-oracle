@@ -7,10 +7,10 @@ import {NonFungible} from "../types/NonFungible.sol";
 /// @title IOracle
 /// @notice Interface for the oracle contracts
 interface IOracle {
-    /// @notice Quotes the price of the base fungible in debt fungible
-    /// @return uint256 The price of the base fungible in debt fungible
-    /// @dev Price has 18 decimals
-    function quotePrice() external view returns (uint256);
+    /// @notice Quotes the price of base fungible in debt fungible
+    /// @return price The price of base fungible in debt fungible
+    /// @dev Price has 18 decimal places
+    function quotePrice() external view returns (uint256 price);
 
     /// @notice Quotes the value and margin requirement for given fungibles
     /// @param fungibles The fungibles to quote

@@ -47,11 +47,10 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle, OracleConfig {
         emaPrice = 1e18;
     }
 
-    function quotePrice() public view returns (uint256) {
-        return emaPrice;
+    function quotePrice() external view returns (uint256 price) {
+        price = emaPrice;
     }
 
-    /// @notice Returns the number of debt tokens that can be exchanged for the assets.
     function quoteFungible(Fungible fungible, uint256 amount)
         internal
         view
@@ -71,7 +70,7 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle, OracleConfig {
             FeedsConfig memory config = feeds[fungible];
 
             // If asset is token, need to set both baseFeed and quoteFeed of token to zero addresses
-            // scaleFactor * (amount * baseFeed) / (emaPrice * quoteFeed)
+            // output debt token amount = scaleFactor * (input token amount * baseFeed * emaPrice) / quoteFeed
             debtTokenAmount = (emaPrice * config.scaleFactor).fullMulDiv(
                 amount * config.baseFeed.getPrice(), config.quoteFeed.getPrice() * 1e36
             );
@@ -103,9 +102,10 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle, OracleConfig {
         view
         returns (uint256 debtTokenAmount, uint256 marginRequirement)
     {
-        /// dispatch to other modules using token address
-        address token = nonFungible.token();
+        address token = nonFungible.tokenAddress();
         PositionValue memory position;
+
+        // dispatch to other modules using token address
         if (address(token) == address(uniswapV4PositionState.positionManager)) {
             position = uniswapV4PositionState.getPositionValue(nonFungible);
         } else {

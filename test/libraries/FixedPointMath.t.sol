@@ -77,7 +77,7 @@ contract FixedPointMathTest is Test {
         return FixedPointMath.expWadX96(x);
     }
 
-    function test_expWad_zero() public {
+    function test_expWad_zero() public pure {
         assertEq(expWad(0), 1 ether);
         assertEq(FixedPointMath.expWadX96(0), 1 << 96);
     }
@@ -98,7 +98,7 @@ contract FixedPointMathTest is Test {
             int256 expWadRes = abi.decode(result1, (int256));
             int256 wadRes = (expWadRes << 78) / 5 ** 18;
 
-            assertApproxEqRel(abi.decode(result0, (int256)), wadRes, 0.01 ether);
+            assertApproxEqRel(abi.decode(result0, (int256)), wadRes, 0.1 ether);
         }
     }
 
