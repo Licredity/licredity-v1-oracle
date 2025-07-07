@@ -6,7 +6,9 @@ import {console} from "forge-std/console.sol";
 library FixedPointMath {
     uint24 internal constant UNIT_PIPS = 1_000_000;
 
-    /// @dev Returns `exp(x)` in `X96`, denominated in `X96`. And x must be minusive.
+    /// @dev Returns `exp(x)` in `X96`, denominated in `X96`.
+    /// @param x in `X96`, and x must be minusive
+    /// @return r `exp(x)` in `X96`
     /// Credit to Remco Bloemen under MIT license: https://2π.com/22/exp-ln
     /// Note: This function is an approximation. Monotonically increasing.
     function expWadX96(int256 x) internal pure returns (int256 r) {
