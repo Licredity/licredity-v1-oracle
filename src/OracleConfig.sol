@@ -14,10 +14,6 @@ import {AggregatorV3Interface} from "./interfaces/external/AggregatorV3Interface
 contract OracleConfig is IPositionConfig {
     using ChainlinkDataFeedLib for AggregatorV3Interface;
 
-    error NotGovernor();
-    error NotExistFungibleFeedConfig();
-    error NotExistNonFungiblePoolIdWhitelist();
-
     address internal licredity;
     address internal governor;
     UniswapV4PositionState internal uniswapV4PositionState;
@@ -33,11 +29,14 @@ contract OracleConfig is IPositionConfig {
         _;
     }
 
+    /// @notice Update the new governor
+    /// @param _newGovernor The address of the new governor
     function updateGovernor(address _newGovernor) external onlyGovernor {
         governor = _newGovernor;
         emit UpdateGovernor(governor);
     }
 
+    /// @inheritdoc IPositionConfig
     function updateFungibleFeedsConfig(
         Fungible asset,
         uint24 mrrPips,
@@ -47,6 +46,8 @@ contract OracleConfig is IPositionConfig {
         uint8 assetTokenDecimals = asset.decimals();
         uint8 debtTokenDecimals = Fungible.wrap(licredity).decimals();
 
+        // emaPrice scaled by 1e18, and emaPrice = debt token amount(uniswap v4) / base token amount(uniswap v4)
+        // output token = scaleFactor * (asset amount * baseFeed * emaPrice) / quoteFeed
         uint256 scaleFactor =
             10 ** (18 + quoteFeed.getDecimals() + debtTokenDecimals - baseFeed.getDecimals() - assetTokenDecimals);
 
@@ -56,6 +57,7 @@ contract OracleConfig is IPositionConfig {
         emit FeedsUpdate(asset, mrrPips, baseFeed, quoteFeed);
     }
 
+    /// @inheritdoc IPositionConfig
     function deleteFungibleFeedsConfig(Fungible asset) external onlyGovernor {
         require(feeds[asset].scaleFactor != 0, NotExistFungibleFeedConfig());
         delete feeds[asset];
@@ -63,6 +65,7 @@ contract OracleConfig is IPositionConfig {
         emit FeedsDelete(asset);
     }
 
+    /// @inheritdoc IPositionConfig
     function initUniswapV4PositionModule(IUniswapV4PoolManager poolManager, IUniswapV4PositionManager positionManager)
         external
         onlyGovernor
@@ -70,6 +73,9 @@ contract OracleConfig is IPositionConfig {
         uniswapV4PositionState.init(poolManager, positionManager);
     }
 
+    /// @notice Set the Uniswap V4 pool whitelist
+    /// @param poolId The Uniswap V4 pool id
+    /// @param enabled Whether the pool is whitelisted
     function setUniswapV4Whitelist(PoolId poolId, bool enabled) external onlyGovernor {
         uniswapV4PositionState.updateV4PoolWhitelist(poolId, enabled);
         emit UniswapV4WhitelistUpdated(poolId, enabled);

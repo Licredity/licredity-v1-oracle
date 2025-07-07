@@ -8,6 +8,10 @@ import {AggregatorV3Interface} from "./external/AggregatorV3Interface.sol";
 import {IPoolManager as IUniswapV4PoolManager} from "v4-core/interfaces/IPoolManager.sol";
 
 interface IPositionConfig {
+    error NotGovernor();
+    error NotExistFungibleFeedConfig();
+    error NotExistNonFungiblePoolIdWhitelist();
+
     /// @notice Event emitted when the new governor is set
     /// @param newGovernor The address of the new governor
     event UpdateGovernor(address indexed newGovernor);
@@ -45,7 +49,7 @@ interface IPositionConfig {
     /// @param asset The address of the asset
     function deleteFungibleFeedsConfig(Fungible asset) external;
 
-    /// @notice Add NFTs with specific pool IDs to the whitelist
+    /// @notice Initialize the Uniswap V4 position module
     /// @param poolManager The Uniswap V4 pool manager
     /// @param positionManager The Uniswap V4 position manager
     function initUniswapV4PositionModule(IUniswapV4PoolManager poolManager, IUniswapV4PositionManager positionManager)
