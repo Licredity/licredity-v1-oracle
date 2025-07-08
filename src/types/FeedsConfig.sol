@@ -3,6 +3,8 @@ pragma solidity ^0.8.0;
 
 import {AggregatorV3Interface} from "../interfaces/external/AggregatorV3Interface.sol";
 
+/// @title FeedsConfig
+/// @notice Configuration for the feeds used in the oracle
 struct FeedsConfig {
     /// @notice The margin requirement in basis points of asset
     uint24 mrrPips;

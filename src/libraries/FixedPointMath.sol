@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {console} from "forge-std/console.sol";
-
 library FixedPointMath {
     uint24 internal constant UNIT_PIPS = 1_000_000;
 

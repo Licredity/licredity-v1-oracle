@@ -4,13 +4,16 @@ out = "out"
 ffi = true
 libs = ["dependencies"]
 remappings = [
-    "forge-std/=dependencies/forge-std-1.9.7/src",
-    "v4-core/=dependencies/uniswap-v4-core-4/src"
+    "forge-std/=dependencies/forge-std-1.9.7/src/",
+    "@forge-std/=dependencies/forge-std-1.9.7/src/",
+    "@uniswap-v4-core/=dependencies/uniswap-v4-core-4/src/",
+    "@licredity-v1-core/=dependencies/licredity-v1-core-1.0.0/src/"
 ]
 
 [dependencies]
 forge-std = "1.9.7"
 uniswap-v4-core = "4"
+licredity-v1-core = { version = "1.0.0", git = "git@github.com:Licredity/licredity-v1-core.git", rev = "ca2b9a568f5ca092b8d4f6bba68a377050f53703" }
 
 [rpc_endpoints]
 ETH = "${ETH_RPC_URL}"
