@@ -11,9 +11,6 @@ import {IUniswapV4PositionManager} from "src/interfaces/external/IUniswapV4Posit
 import {AggregatorV3Interface} from "src/interfaces/external/AggregatorV3Interface.sol";
 
 contract NonFungibleOracleTest is Deployers {
-    error NotSupportedUniswapV4Pool();
-    error NotSupportedNonFungible();
-
     LicredityChainlinkOracle public oracle;
     PoolId public ETHUSDCPoolId;
     AggregatorV3Interface public constant ZERO_ORACLE = AggregatorV3Interface(address(0));
@@ -46,12 +43,13 @@ contract NonFungibleOracleTest is Deployers {
             nft := or(0xcd216513d74c8cf14cf4747e6aaa6420ff64ee9e000000000000000000000000, 1)
         }
 
-        vm.expectRevert(NotSupportedNonFungible.selector);
-
         NonFungible[] memory nonFungibles = new NonFungible[](1);
         nonFungibles[0] = nft;
 
-        oracle.quoteNonFungibles(nonFungibles);
+        (uint256 value, uint256 marginRequirement) = oracle.quoteNonFungibles(nonFungibles);
+
+        assertEq(value, 0);
+        assertEq(marginRequirement, 0);
     }
 
     function test_quoteNonFungible_ETHUSDC_zero() public {
@@ -59,8 +57,9 @@ contract NonFungibleOracleTest is Deployers {
         NonFungible[] memory nonFungibles = new NonFungible[](1);
         nonFungibles[0] = nft;
 
-        vm.expectRevert(NotSupportedUniswapV4Pool.selector);
-        oracle.quoteNonFungibles(nonFungibles);
+        (uint256 value, uint256 marginRequirement) = oracle.quoteNonFungibles(nonFungibles);
+        assertEq(value, 0);
+        assertEq(marginRequirement, 0);
     }
 
     function test_quoteNonFungible_ETHUSDC() public {

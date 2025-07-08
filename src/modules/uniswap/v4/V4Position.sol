@@ -28,7 +28,6 @@ using UniswapV4PositionLibrary for UniswapV4PositionState global;
 library UniswapV4PositionLibrary {
     using StateLibrary for IPoolManager;
 
-    error NotSupportedUniswapV4Pool();
     error AlreadyInitialized();
 
     /// @notice Initialize the module
@@ -79,8 +78,13 @@ library UniswapV4PositionLibrary {
         uint256 id = nonFungible.tokenId();
         (PoolKey memory poolKey, PositionInfo positionInfo) = positionManager.getPoolAndPositionInfo(id);
         PoolId poolId = poolKey.toId();
-        require(state.positionWhitelist[poolId], NotSupportedUniswapV4Pool());
 
+        if (!state.positionWhitelist[poolId]) {
+            position.token0Amount = 0;
+            position.token1Amount = 0;
+            return position;
+        }
+        
         position.token0 = Fungible.wrap(Currency.unwrap(poolKey.currency0));
         position.token1 = Fungible.wrap(Currency.unwrap(poolKey.currency1));
 

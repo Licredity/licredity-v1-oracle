@@ -21,17 +21,14 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle, OracleConfig {
     using ChainlinkDataFeedLib for AggregatorV3Interface;
     using StateLibrary for IPoolManager;
 
-    error NotSupportedNonFungible();
-    error NotUniswapV4Position();
-
     PoolId public poolId;
     IPoolManager immutable poolManager;
 
     uint256 public lastPriceX96;
-    uint256 public currentPriceX96;
+    uint256 internal currentPriceX96;
     uint256 public emaPrice;
     uint256 public lastUpdateTimeStamp;
-    uint256 public currentTimeStamp;
+    uint256 internal currentTimeStamp;
 
     constructor(address licredity_, address owner_, PoolId poolId_, IPoolManager poolManager_)
         OracleConfig(licredity_, owner_)
@@ -108,9 +105,13 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle, OracleConfig {
         if (address(token) == address(uniswapV4PositionState.positionManager)) {
             position = uniswapV4PositionState.getPositionValue(nonFungible);
         } else {
-            revert NotSupportedNonFungible();
+            return (0, 0);
         }
 
+        if (position.token0Amount == 0 && position.token1Amount == 0) {
+            return (0, 0);
+        }
+        
         (uint256 debtToken0Amount, uint256 margin0Requirement) = quoteFungible(position.token0, position.token0Amount);
         (uint256 debtToken1Amount, uint256 margin1Requirement) = quoteFungible(position.token1, position.token1Amount);
 
