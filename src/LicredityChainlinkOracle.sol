@@ -69,7 +69,6 @@ contract LicredityChainlinkOracle is ILicredityChainlinkOracle, OracleConfig {
 
             FeedsConfig memory config = feeds[fungible];
 
-            // If asset is token, need to set both baseFeed and quoteFeed of token to zero addresses
             // output debt token amount = scaleFactor * (input token amount * baseFeed * emaPrice) / quoteFeed
             debtTokenAmount = (emaPrice * config.scaleFactor).fullMulDiv(
                 amount * config.baseFeed.getPrice(), config.quoteFeed.getPrice() * 1e36
