@@ -58,40 +58,54 @@ library UniswapV4ModuleLibrary {
         IPoolManager poolManager = module.poolManager;
         IPositionManager positionManager = module.positionManager;
 
-        // Check if the pool is whitelisted
-        (PoolKey memory poolKey, PositionInfo positionInfo) = positionManager.getPoolAndPositionInfo(positionId);
-        PoolId poolId = poolKey.toId();
+        PoolId poolId;
+        int24 tickLower;
+        int24 tickUpper;
+        {
+            // Check if the pool is whitelisted
+            (PoolKey memory poolKey, PositionInfo positionInfo) = positionManager.getPoolAndPositionInfo(positionId);
+            poolId = poolKey.toId();
 
-        if (!module.positionWhitelist[poolId]) {
-            return (
-                Fungible.wrap(Currency.unwrap(poolKey.currency0)),
-                0,
-                Fungible.wrap(Currency.unwrap(poolKey.currency1)),
-                0
-            );
+            if (!module.positionWhitelist[poolId]) {
+                return (
+                    Fungible.wrap(Currency.unwrap(poolKey.currency0)),
+                    0,
+                    Fungible.wrap(Currency.unwrap(poolKey.currency1)),
+                    0
+                );
+            }
+
+            fungible0 = Fungible.wrap(Currency.unwrap(poolKey.currency0));
+            fungible1 = Fungible.wrap(Currency.unwrap(poolKey.currency1));
+
+            tickLower = positionInfo.tickLower();
+            tickUpper = positionInfo.tickUpper();
         }
 
-        fungible0 = Fungible.wrap(Currency.unwrap(poolKey.currency0));
-        fungible1 = Fungible.wrap(Currency.unwrap(poolKey.currency1));
-
-        int24 tickLower = positionInfo.tickLower();
-        int24 tickUpper = positionInfo.tickUpper();
         bytes32 positionKey =
             Position.calculatePositionKey(address(module.positionManager), tickLower, tickUpper, bytes32(positionId));
 
         // Fee
-        (uint128 liquidity, uint256 feeGrowthInside0LastX128, uint256 feeGrowthInside1LastX128) =
-            poolManager.getPositionInfo(poolId, positionKey);
+        uint128 liquidity;
+        {
+            uint256 feeGrowthInside0LastX128;
+            uint256 feeGrowthInside1LastX128;
+
+            (liquidity, feeGrowthInside0LastX128, feeGrowthInside1LastX128) =
+                poolManager.getPositionInfo(poolId, positionKey);
+
+            (uint256 feeGrowthInside0X128, uint256 feeGrowthInside1X128) =
+                poolManager.getFeeGrowthInside(poolId, tickLower, tickUpper);
+
+            unchecked {
+                amount0 +=
+                    FullMath.mulDiv(feeGrowthInside0X128 - feeGrowthInside0LastX128, liquidity, FixedPoint128.Q128);
+                amount1 +=
+                    FullMath.mulDiv(feeGrowthInside1X128 - feeGrowthInside1LastX128, liquidity, FixedPoint128.Q128);
+            }
+        }
 
         (uint160 sqrtPriceX96, int24 tick,,) = poolManager.getSlot0(poolId);
-
-        (uint256 feeGrowthInside0X128, uint256 feeGrowthInside1X128) =
-            poolManager.getFeeGrowthInside(poolId, tickLower, tickUpper);
-
-        unchecked {
-            amount0 += FullMath.mulDiv(feeGrowthInside0X128 - feeGrowthInside0LastX128, liquidity, FixedPoint128.Q128);
-            amount1 += FullMath.mulDiv(feeGrowthInside1X128 - feeGrowthInside1LastX128, liquidity, FixedPoint128.Q128);
-        }
 
         // Token in LP position
         if (tick < tickLower) {

@@ -161,21 +161,21 @@ contract ChainlinkOracle is IChainlinkOracle, ChainlinkOracleConfigs {
         view
         returns (uint256 debtTokenAmount, uint256 marginRequirement)
     {
-        address token = nonFungible.tokenAddress();
-
         // dispatch to other modules using token address
-        if (address(token) == address(uniswapV4Module.positionManager)) {
+        if (nonFungible.tokenAddress() == address(uniswapV4Module.positionManager)) {
             (Fungible fungible0, uint256 amount0, Fungible fungible1, uint256 amount1) =
-                uniswapV4Module.getPositionValue(nonFungible);
+                uniswapV4Module.getPositionValue(nonFungible.tokenId());
 
             if (amount0 > 0) {
                 (uint256 debtToken0Amount, uint256 margin0Requirement) = _quoteFungible(fungible0, amount0);
                 debtTokenAmount += debtToken0Amount;
+                marginRequirement += margin0Requirement;
             }
 
             if (amount1 > 0) {
                 (uint256 debtToken1Amount, uint256 margin1Requirement) = _quoteFungible(fungible1, amount1);
                 debtTokenAmount += debtToken1Amount;
+                marginRequirement += margin1Requirement;
             }
         } else {
             return (0, 0);
