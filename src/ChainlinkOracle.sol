@@ -27,14 +27,15 @@ contract ChainlinkOracle is IChainlinkOracle, ChainlinkOracleConfigs {
     uint256 private constant POOL_MANAGER_OFFSET = 5;
     uint256 private constant POOL_ID_OFFSET = 14;
 
+    uint256 public emaPrice;
+    uint256 public currentPriceX96;
+    uint256 public currentTimeStamp;
+    uint256 public lastPriceX96;
+    uint256 public lastUpdateTimeStamp;
+
     IPoolManager internal immutable poolManager;
     PoolId internal immutable poolId;
     Fungible internal immutable debtFungible;
-    uint256 internal emaPrice;
-    uint256 internal currentPriceX96;
-    uint256 internal currentTimeStamp;
-    uint256 internal lastPriceX96;
-    uint256 internal lastUpdateTimeStamp;
 
     constructor(address licredity, address _governor) ChainlinkOracleConfigs(_governor) {
         poolManager =
