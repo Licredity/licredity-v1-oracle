@@ -6,6 +6,7 @@ import {PoolId} from "@uniswap-v4-core/types/PoolId.sol";
 import {AggregatorV3Interface} from "./interfaces/external/AggregatorV3Interface.sol";
 import {IChainlinkOracleConfigs} from "./interfaces/IChainlinkOracleConfigs.sol";
 import {ChainlinkFeedLibrary} from "./libraries/ChainlinkFeedLibrary.sol";
+import {FixedPointMath} from "./libraries/FixedPointMath.sol";
 import {UniswapV4Module} from "./modules/uniswap/v4/UniswapV4Module.sol";
 
 /// @title ChainlinkOracleConfigs
@@ -24,6 +25,7 @@ abstract contract ChainlinkOracleConfigs is IChainlinkOracleConfigs {
     using ChainlinkFeedLibrary for AggregatorV3Interface;
 
     error NotGovernor();
+    error InvalidMrrPips();
 
     UniswapV4Module internal uniswapV4Module;
 
@@ -53,6 +55,8 @@ abstract contract ChainlinkOracleConfigs is IChainlinkOracleConfigs {
         AggregatorV3Interface baseFeed,
         AggregatorV3Interface quoteFeed
     ) external onlyGovernor {
+        require(mrrPips <= FixedPointMath.UNIT_PIPS, InvalidMrrPips());
+
         // scaled factor between base and quote fungibles, amplified by 1e18 to prevent negative number
         uint256 scaleFactor = 10
             ** (18 + quoteFeed.getDecimals() + _getQuoteFungibleDecimals() - baseFeed.getDecimals() - fungible.decimals());
