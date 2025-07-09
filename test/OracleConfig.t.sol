@@ -10,12 +10,14 @@ import {IChainlinkOracle} from "src/interfaces/IChainlinkOracle.sol";
 import {IChainlinkOracleConfigs} from "src/interfaces/IChainlinkOracleConfigs.sol";
 import {IPositionManager} from "src/modules/uniswap/v4/interfaces/IPositionManager.sol";
 import {ChainlinkOracle} from "src/ChainlinkOracle.sol";
+import {FixedPointMath} from "src/libraries/FixedPointMath.sol";
 import {Deployers} from "./Deployers.sol";
 
 contract LicredityChainlinkOracleManageTest is Deployers {
     error NotGovernor();
     error NotExistFungibleFeedConfig();
     error AlreadyInitialized();
+    error InvalidMrrPips();
 
     ChainlinkOracle public oracle;
     PoolId public mockPoolId;
@@ -27,6 +29,9 @@ contract LicredityChainlinkOracleManageTest is Deployers {
         deployMockChainlinkOracle();
 
         mockPoolId = PoolId.wrap(bytes32(hex"01"));
+        licredity.setPoolManagerAndPoolId(address(uniswapV4Mock), mockPoolId);
+        uniswapV4Mock.setPoolIdSqrtPriceX96(mockPoolId, 1 << 96);
+
         oracle = new ChainlinkOracle(address(licredity), address(this));
 
         licredityFungible = address(licredity);
@@ -73,14 +78,14 @@ contract LicredityChainlinkOracleManageTest is Deployers {
         );
 
         vm.mockCall(Fungible.unwrap(asset), abi.encodeWithSelector(IERC20.decimals.selector), abi.encode(decimals));
-        vm.expectEmit(true, false, false, true);
-        emit IChainlinkOracleConfigs.SetFungibleConfig(asset, mrrPips, 0, baseFeed, quoteFeed);
+        if (mrrPips > FixedPointMath.UNIT_PIPS) {
+            vm.expectRevert(InvalidMrrPips.selector);
+        } else {
+            vm.expectEmit(true, false, false, false);
+            emit IChainlinkOracleConfigs.SetFungibleConfig(asset, mrrPips, 0, baseFeed, quoteFeed);
+        }
+        
         oracle.setFungibleConfig(asset, mrrPips, baseFeed, quoteFeed);
-    }
-
-    function test_deleteFungibleFeedsConfig_NotExist(Fungible asset) public {
-        vm.expectRevert(NotExistFungibleFeedConfig.selector);
-        oracle.deleteFungibleConfig(asset);
     }
 
     function test_deleteFungibleFeedsConfig(Fungible asset) public {

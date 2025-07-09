@@ -19,11 +19,16 @@ contract NonFungibleOracleTest is Deployers {
 
     function setUp() public {
         deployLicredity();
+        deployUniswapV4MockPool();
 
         vm.createSelectFork("ETH", 22638094);
 
         IPoolManager v4Manager = IPoolManager(address(0x000000000004444c5dc75cB358380D2e3dE08A90));
         ETHUSDCPoolId = PoolId.wrap(bytes32(0x21c67e77068de97969ba93d4aab21826d33ca12bb9f565d8496e8fda8a82ca27));
+
+        uniswapV4Mock.setPoolIdSqrtPriceX96(ETHUSDCPoolId, 1 << 96);
+        licredity.setPoolManagerAndPoolId(address(uniswapV4Mock), ETHUSDCPoolId);
+        
         oracle = new ChainlinkOracle(address(licredity), address(this));
 
         oracle.initializeUniswapV4Module(address(v4Manager), address(0xbD216513d74C8cf14cf4747E6AaA6420FF64ee9e));
@@ -75,9 +80,9 @@ contract NonFungibleOracleTest is Deployers {
             ZERO_ORACLE,
             AggregatorV3Interface(address(0x5147eA642CAEF7BD9c1265AadcA78f997AbB9649))
         );
-        // ETH / USDC = 2602.68440965, debt ETH / ETH = 0.984375
+        // ETH / USDC = 2602.68440965
         (uint256 debtTokenAmount,) = oracle.quoteNonFungibles(nonFungibles);
-        // assertEq(debtTokenAmount, 4903006588562427069110 + 3421468981784);
-        assertApproxEqAbsDecimal(debtTokenAmount, 4826397110616138448896 + 1294051832199103643648, 1e6, 18);
+        // LP token = 4903006588562427069110 ETH + 3421468981784 USDC;
+        assertApproxEqAbsDecimal(debtTokenAmount, 4903006588562427069110 + 1314592337472105218048, 1e5, 18);
     }
 }

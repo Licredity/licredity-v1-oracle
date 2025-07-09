@@ -11,10 +11,11 @@ import {PoolId} from "@uniswap-v4-core/types/PoolId.sol";
 import {PoolKey} from "@uniswap-v4-core/types/PoolKey.sol";
 import {ChainlinkOracleMock} from "./mock/ChainlinkOracleMock.sol";
 import {DecimalsMock} from "./mock/DecimalsMock.sol";
+import {LicredityMock} from "./mock/LicredityMock.sol";
 import {UniswapV4PoolMock} from "./mock/UniswapV4PoolMock.sol";
 
 contract Deployers is Test {
-    DecimalsMock public licredity;
+    LicredityMock public licredity;
     DecimalsMock public usd;
     DecimalsMock public btc;
 
@@ -29,8 +30,7 @@ contract Deployers is Test {
     Currency internal currency1;
 
     function deployLicredity() public {
-        licredity = new DecimalsMock();
-        licredity.setDecimals(18);
+        licredity = new LicredityMock();
     }
 
     function deployUniswapV4MockPool() public {

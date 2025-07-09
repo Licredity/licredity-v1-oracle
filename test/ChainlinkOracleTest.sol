@@ -24,6 +24,9 @@ contract ChainlinkOracleTest is Deployers {
 
         IPoolManager v4Manager = IPoolManager(address(uniswapV4Mock));
         mockPoolId = PoolId.wrap(bytes32(hex"01"));
+        licredity.setPoolManagerAndPoolId(address(v4Manager), mockPoolId);
+        uniswapV4Mock.setPoolIdSqrtPriceX96(mockPoolId, 1 << 96);
+
         oracle = new ChainlinkOracle(address(licredity), address(this));
 
         oracle.initializeUniswapV4Module(address(v4Manager), address(0));
