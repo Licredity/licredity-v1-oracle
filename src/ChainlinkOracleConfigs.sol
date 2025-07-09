@@ -5,77 +5,84 @@ import {Fungible} from "@licredity-v1-core/types/Fungible.sol";
 import {PoolId} from "@uniswap-v4-core/types/PoolId.sol";
 import {AggregatorV3Interface} from "./interfaces/external/AggregatorV3Interface.sol";
 import {IChainlinkOracleConfigs} from "./interfaces/IChainlinkOracleConfigs.sol";
-import {ChainlinkDataFeedLib} from "./libraries/ChainlinkDataFeedLib.sol";
+import {ChainlinkFeedLibrary} from "./libraries/ChainlinkFeedLibrary.sol";
 import {UniswapV4Module} from "./modules/uniswap/v4/UniswapV4Module.sol";
-import {ModuleConfigs} from "./modules/ModuleConfigs.sol";
-import {FeedsConfig} from "./types/FeedsConfig.sol";
 
-/// @title ChainlinkOracleConfig
+/// @title ChainlinkOracleConfigs
 /// @notice Abstract contract for Chainlink oracle configurations
 abstract contract ChainlinkOracleConfigs is IChainlinkOracleConfigs {
-    using ChainlinkDataFeedLib for AggregatorV3Interface;
+    /// @title FungibleConfig
+    /// @notice Configuration for a fungible used in the oracle
+    struct FungibleConfig {
+        /// @notice The fungible's margin requirement ratio in pips
+        uint24 mrrPips;
+        uint256 scaleFactor;
+        AggregatorV3Interface baseFeed;
+        AggregatorV3Interface quoteFeed;
+    }
+
+    using ChainlinkFeedLibrary for AggregatorV3Interface;
+
+    error NotGovernor();
 
     UniswapV4Module internal uniswapV4Module;
 
-    uint256 internal immutable debtFungibleDecimals;
     address internal governor;
-    mapping(Fungible => FeedsConfig) internal feedConfigs;
+    mapping(Fungible => FungibleConfig) internal fungibleConfigs;
 
     modifier onlyGovernor() {
         require(msg.sender == governor, NotGovernor());
         _;
     }
 
-    constructor(uint256 _debtFungibleDecimals, address _governor) {
-        debtFungibleDecimals = _debtFungibleDecimals;
+    constructor(address _governor) {
         governor = _governor;
-
-        uniswapV4Module.init(ModuleConfigs.uniswapV4PoolManager, ModuleConfigs.uniswapV4PositionManager);
     }
 
-    /// @notice Update the new governor
-    /// @param newGovernor The address of the new governor
+    /// @inheritdoc IChainlinkOracleConfigs
     function updateGovernor(address newGovernor) external onlyGovernor {
         governor = newGovernor;
 
         emit UpdateGovernor(newGovernor);
     }
 
-    function updateFungibleFeedsConfig(
+    /// @inheritdoc IChainlinkOracleConfigs
+    function setFungibleConfig(
         Fungible fungible,
         uint24 mrrPips,
         AggregatorV3Interface baseFeed,
         AggregatorV3Interface quoteFeed
     ) external onlyGovernor {
-        uint8 fungibleDecimals = fungible.decimals();
+        // scaled factor between base and quote fungibles, amplified by 1e18 to prevent negative number
+        uint256 scaleFactor = 10
+            ** (18 + quoteFeed.getDecimals() + _getQuoteFungibleDecimals() - baseFeed.getDecimals() - fungible.decimals());
 
-        // emaPrice scaled by 1e18, and emaPrice = debt token amount(uniswap v4) / base token amount(uniswap v4)
-        // output token = scaleFactor * (asset amount * baseFeed * emaPrice) / quoteFeed
-        uint256 scaleFactor =
-            10 ** (18 + quoteFeed.getDecimals() + debtFungibleDecimals - baseFeed.getDecimals() - fungibleDecimals);
+        fungibleConfigs[fungible] =
+            FungibleConfig({mrrPips: mrrPips, scaleFactor: scaleFactor, baseFeed: baseFeed, quoteFeed: quoteFeed});
 
-        feedConfigs[fungible] =
-            FeedsConfig({mrrPips: mrrPips, scaleFactor: scaleFactor, baseFeed: baseFeed, quoteFeed: quoteFeed});
-
-        emit FeedsUpdate(fungible, mrrPips, baseFeed, quoteFeed);
+        emit SetFungibleConfig(fungible, mrrPips, scaleFactor, baseFeed, quoteFeed);
     }
 
-    function deleteFungibleFeedsConfig(Fungible fungible) external onlyGovernor {
-        require(feedConfigs[fungible].scaleFactor != 0, NotExistFungibleFeedConfig());
-        delete feedConfigs[fungible];
+    /// @inheritdoc IChainlinkOracleConfigs
+    function deleteFungibleConfig(Fungible fungible) external onlyGovernor {
+        delete fungibleConfigs[fungible];
 
-        emit FeedsDelete(fungible);
+        emit DeleteFungibleConfig(fungible);
     }
 
-    function initUniswapV4Module(address poolManager, address positionManager) external onlyGovernor {
-        uniswapV4Module.init(poolManager, positionManager);
+    /// @inheritdoc IChainlinkOracleConfigs
+    function initializeUniswapV4Module(address poolManager, address positionManager) external onlyGovernor {
+        uniswapV4Module.initialize(poolManager, positionManager);
+
+        emit InitializeUniswapV4Module(poolManager, positionManager);
     }
 
-    /// @notice Set the Uniswap V4 pool whitelist
-    /// @param poolId The Uniswap V4 pool id
-    /// @param enabled Whether the pool is whitelisted
-    function setPoolWhitelist(PoolId poolId, bool enabled) external onlyGovernor {
-        uniswapV4Module.setPoolWhitelist(poolId, enabled);
-        emit UniswapV4WhitelistUpdated(poolId, enabled);
+    /// @inheritdoc IChainlinkOracleConfigs
+    function setUniswapV4Pool(PoolId poolId, bool isWhitelisted) external onlyGovernor {
+        uniswapV4Module.setPool(poolId, isWhitelisted);
+
+        emit SetUniswapV4Pool(poolId, isWhitelisted);
     }
+
+    function _getQuoteFungibleDecimals() internal view virtual returns (uint256 decimals);
 }

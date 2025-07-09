@@ -1,6 +1,7 @@
 [profile.default]
 src = "src"
 out = "out"
+via_ir = true
 ffi = true
 libs = ["dependencies"]
 remappings = [
