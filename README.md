@@ -234,24 +234,6 @@ forge test --match-test test_quoteFungible
 forge test --match-test test_oracleUpdate_fuzz
 ```
 
-## Security Considerations
-
-⚠️ **Important Security Notes:**
-
-1. **Chainlink Feed Validation**: Ensure proper staleness checks are implemented
-2. **Governor Security**: Use multi-sig or timelock for governance operations
-3. **Price Manipulation**: Monitor for sustained manipulation attempts
-4. **Input Validation**: Validate all external inputs and array sizes
-5. **Circuit Breakers**: Implement emergency pause mechanisms
-
-### Security Best Practices
-
-- Always validate Chainlink feed responses
-- Use timelock for critical configuration changes
-- Monitor oracle price deviations
-- Implement proper access controls
-- Regular security audits
-
 ## Governance
 
 The oracle system uses a governor-controlled configuration model:
