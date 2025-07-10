@@ -27,6 +27,14 @@ using UniswapV4ModuleLibrary for UniswapV4Module global;
 /// @title UniswapV4ModuleLibrary
 /// @notice Library for managing Uniswap V4 modules
 library UniswapV4ModuleLibrary {
+    struct PositionData {
+        int24 tickLower;
+        int24 tickUpper;
+        uint128 liquidity;
+        uint256 feeGrowthInside0LastX128;
+        uint256 feeGrowthInside1LastX128;
+    }
+
     using StateLibrary for IPoolManager;
 
     error AlreadyInitialized();
@@ -75,35 +83,62 @@ library UniswapV4ModuleLibrary {
             return (fungible0, 0, fungible1, 0);
         }
 
-        int24 tickLower = positionInfo.tickLower();
-        int24 tickUpper = positionInfo.tickUpper();
+        PositionData memory positionData =
+            _getPositionData(poolManager, positionManager, poolId, positionId, positionInfo);
+
         (uint256 feeGrowthInside0X128, uint256 feeGrowthInside1X128) =
-            poolManager.getFeeGrowthInside(poolId, tickLower, tickUpper);
-        (uint128 liquidity, uint256 feeGrowthInside0LastX128, uint256 feeGrowthInside1LastX128) =
-            poolManager.getPositionInfo(poolId, address(positionManager), tickLower, tickUpper, bytes32(positionId));
+            poolManager.getFeeGrowthInside(poolId, positionData.tickLower, positionData.tickUpper);
 
         // uncollected fees in the position
         unchecked {
-            amount0 += FullMath.mulDiv(feeGrowthInside0X128 - feeGrowthInside0LastX128, liquidity, FixedPoint128.Q128);
-            amount1 += FullMath.mulDiv(feeGrowthInside1X128 - feeGrowthInside1LastX128, liquidity, FixedPoint128.Q128);
+            amount0 += FullMath.mulDiv(
+                feeGrowthInside0X128 - positionData.feeGrowthInside0LastX128, positionData.liquidity, FixedPoint128.Q128
+            );
+            amount1 += FullMath.mulDiv(
+                feeGrowthInside1X128 - positionData.feeGrowthInside1LastX128, positionData.liquidity, FixedPoint128.Q128
+            );
         }
 
         (uint160 sqrtPriceX96, int24 tick,,) = poolManager.getSlot0(poolId);
 
         // liquidity amounts in the position
-        if (tick < tickLower) {
+        if (tick < positionData.tickLower) {
             amount0 += SqrtPriceMath.getAmount0Delta(
-                TickMath.getSqrtPriceAtTick(tickLower), TickMath.getSqrtPriceAtTick(tickUpper), liquidity, false
+                TickMath.getSqrtPriceAtTick(positionData.tickLower),
+                TickMath.getSqrtPriceAtTick(positionData.tickUpper),
+                positionData.liquidity,
+                false
             );
-        } else if (tick < tickUpper) {
-            amount0 +=
-                SqrtPriceMath.getAmount0Delta(sqrtPriceX96, TickMath.getSqrtPriceAtTick(tickUpper), liquidity, false);
-            amount1 +=
-                SqrtPriceMath.getAmount1Delta(TickMath.getSqrtPriceAtTick(tickLower), sqrtPriceX96, liquidity, false);
+        } else if (tick < positionData.tickUpper) {
+            amount0 += SqrtPriceMath.getAmount0Delta(
+                sqrtPriceX96, TickMath.getSqrtPriceAtTick(positionData.tickUpper), positionData.liquidity, false
+            );
+            amount1 += SqrtPriceMath.getAmount1Delta(
+                TickMath.getSqrtPriceAtTick(positionData.tickLower), sqrtPriceX96, positionData.liquidity, false
+            );
         } else {
             amount1 += SqrtPriceMath.getAmount1Delta(
-                TickMath.getSqrtPriceAtTick(tickLower), TickMath.getSqrtPriceAtTick(tickUpper), liquidity, false
+                TickMath.getSqrtPriceAtTick(positionData.tickLower),
+                TickMath.getSqrtPriceAtTick(positionData.tickUpper),
+                positionData.liquidity,
+                false
             );
         }
+    }
+
+    function _getPositionData(
+        IPoolManager poolManager,
+        IPositionManager positionManager,
+        PoolId poolId,
+        uint256 positionId,
+        PositionInfo positionInfo
+    ) internal view returns (PositionData memory positionData) {
+        positionData.tickLower = positionInfo.tickLower();
+        positionData.tickUpper = positionInfo.tickUpper();
+
+        (positionData.liquidity, positionData.feeGrowthInside0LastX128, positionData.feeGrowthInside1LastX128) =
+        poolManager.getPositionInfo(
+            poolId, address(positionManager), positionData.tickLower, positionData.tickUpper, bytes32(positionId)
+        );
     }
 }
