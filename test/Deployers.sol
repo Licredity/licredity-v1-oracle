@@ -1,20 +1,21 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.20;
 
-import {Test} from "forge-std/Test.sol";
+import {Test} from "@forge-std/Test.sol";
+import {IHooks} from "@uniswap-v4-core/interfaces/IHooks.sol";
+import {IPoolManager} from "@uniswap-v4-core/interfaces/IPoolManager.sol";
+import {PoolModifyLiquidityTest} from "@uniswap-v4-core/test/PoolModifyLiquidityTest.sol";
+import {TestERC20} from "@uniswap-v4-core/test/TestERC20.sol";
+import {Currency} from "@uniswap-v4-core/types/Currency.sol";
+import {PoolId} from "@uniswap-v4-core/types/PoolId.sol";
+import {PoolKey} from "@uniswap-v4-core/types/PoolKey.sol";
 import {ChainlinkOracleMock} from "./mock/ChainlinkOracleMock.sol";
-import {UniswapV4PoolMock} from "./mock/UniswapV4PoolMock.sol";
 import {DecimalsMock} from "./mock/DecimalsMock.sol";
-import {Currency} from "v4-core/types/Currency.sol";
-import {PoolKey} from "v4-core/types/PoolKey.sol";
-import {PoolId} from "v4-core/types/PoolId.sol";
-import {IPoolManager} from "v4-core/interfaces/IPoolManager.sol";
-import {IHooks} from "v4-core/interfaces/IHooks.sol";
-import {TestERC20} from "v4-core/test/TestERC20.sol";
-import {PoolModifyLiquidityTest} from "v4-core/test/PoolModifyLiquidityTest.sol";
+import {LicredityMock} from "./mock/LicredityMock.sol";
+import {UniswapV4PoolMock} from "./mock/UniswapV4PoolMock.sol";
 
 contract Deployers is Test {
-    DecimalsMock public licredity;
+    LicredityMock public licredity;
     DecimalsMock public usd;
     DecimalsMock public btc;
 
@@ -29,8 +30,7 @@ contract Deployers is Test {
     Currency internal currency1;
 
     function deployLicredity() public {
-        licredity = new DecimalsMock();
-        licredity.setDecimals(18);
+        licredity = new LicredityMock();
     }
 
     function deployUniswapV4MockPool() public {

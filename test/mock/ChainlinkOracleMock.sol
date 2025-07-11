@@ -21,8 +21,4 @@ contract ChainlinkOracleMock is AggregatorV3Interface {
     function latestRoundData() public view override returns (uint80, int256, uint256, uint256, uint80) {
         return (0, answer, 0, 0, 0);
     }
-
-    function getRoundData(uint80) public view override returns (uint80, int256, uint256, uint256, uint80) {
-        return (0, answer, 0, 0, 0);
-    }
 }

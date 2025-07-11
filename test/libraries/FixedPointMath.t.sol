@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.20;
 
-import {Test} from "forge-std/Test.sol";
+import {Test} from "@forge-std/Test.sol";
+import {PipsMath} from "@licredity-v1-core/libraries/PipsMath.sol";
 import {FixedPointMath} from "src/libraries/FixedPointMath.sol";
 
 contract FixedPointMathTest is Test {
@@ -118,7 +119,7 @@ contract FixedPointMathTest is Test {
     }
 
     function mulPipsUp(uint256 x, uint24 y) public pure returns (uint256 z) {
-        return FixedPointMath.mulPipsUp(x, y);
+        return PipsMath.pipsMulUp(x, y);
     }
 
     function test_mulPipsUp(uint256 x, uint256 y) public view {

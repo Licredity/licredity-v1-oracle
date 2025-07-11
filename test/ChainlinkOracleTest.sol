@@ -1,21 +1,21 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.20;
 
+import {stdMath} from "@forge-std/StdMath.sol";
+import {Fungible} from "@licredity-v1-core/types/Fungible.sol";
+import {IPoolManager} from "@uniswap-v4-core/interfaces/IPoolManager.sol";
+import {PoolId} from "@uniswap-v4-core/types/PoolId.sol";
 import {AggregatorV3Interface} from "src/interfaces/external/AggregatorV3Interface.sol";
-import {LicredityChainlinkOracle} from "src/LicredityChainlinkOracle.sol";
-import {Fungible} from "src/types/Fungible.sol";
+import {IPositionManager} from "src/modules/uniswap/v4/interfaces/IPositionManager.sol";
+import {ChainlinkOracle} from "src/ChainlinkOracle.sol";
 import {Deployers} from "./Deployers.sol";
-import {PoolId} from "v4-core/types/PoolId.sol";
-import {IPoolManager} from "v4-core/interfaces/IPoolManager.sol";
-import {IUniswapV4PositionManager} from "src/interfaces/external/IUniswapV4PositionManager.sol";
-import {stdMath} from "forge-std/StdMath.sol";
 
-contract LicredityChainlinkOracleTest is Deployers {
+contract ChainlinkOracleTest is Deployers {
     error NotSupportedFungible();
 
     PoolId public mockPoolId;
     address public licredityFungible;
-    LicredityChainlinkOracle public oracle;
+    ChainlinkOracle public oracle;
 
     function setUp() public {
         deployLicredity();
@@ -24,9 +24,12 @@ contract LicredityChainlinkOracleTest is Deployers {
 
         IPoolManager v4Manager = IPoolManager(address(uniswapV4Mock));
         mockPoolId = PoolId.wrap(bytes32(hex"01"));
-        oracle = new LicredityChainlinkOracle(address(licredity), address(this), mockPoolId, v4Manager);
+        licredity.setPoolManagerAndPoolId(address(v4Manager), mockPoolId);
+        uniswapV4Mock.setPoolIdSqrtPriceX96(mockPoolId, 1 << 96);
 
-        oracle.initUniswapV4PositionModule(v4Manager, IUniswapV4PositionManager(address(0)));
+        oracle = new ChainlinkOracle(address(licredity), address(this));
+
+        oracle.initializeUniswapV4Module(address(v4Manager), address(0));
         licredityFungible = address(licredity);
     }
 
@@ -163,7 +166,7 @@ contract LicredityChainlinkOracleTest is Deployers {
     }
 
     function test_quoteFungibleEthUsd() public {
-        oracle.updateFungibleFeedsConfig(Fungible.wrap(address(usd)), 100000, AggregatorV3Interface(address(0)), ethUSD);
+        oracle.setFungibleConfig(Fungible.wrap(address(usd)), 100000, AggregatorV3Interface(address(0)), ethUSD);
         uniswapV4Mock.setPoolIdSqrtPriceX96(mockPoolId, 1 << 96);
 
         Fungible[] memory fungibles = new Fungible[](1);
@@ -179,7 +182,7 @@ contract LicredityChainlinkOracleTest is Deployers {
     }
 
     function test_quoteFungibleBtcEth() public {
-        oracle.updateFungibleFeedsConfig(Fungible.wrap(address(btc)), 10000, btcETH, AggregatorV3Interface(address(0)));
+        oracle.setFungibleConfig(Fungible.wrap(address(btc)), 10000, btcETH, AggregatorV3Interface(address(0)));
         uniswapV4Mock.setPoolIdSqrtPriceX96(mockPoolId, 1 << 96);
 
         Fungible[] memory fungibles = new Fungible[](1);
