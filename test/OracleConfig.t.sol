@@ -84,7 +84,7 @@ contract LicredityChainlinkOracleManageTest is Deployers {
             vm.expectEmit(true, false, false, false);
             emit IChainlinkOracleConfigs.SetFungibleConfig(asset, mrrPips, 0, baseFeed, quoteFeed);
         }
-        
+
         oracle.setFungibleConfig(asset, mrrPips, baseFeed, quoteFeed);
     }
 

@@ -28,7 +28,7 @@ contract NonFungibleOracleTest is Deployers {
 
         uniswapV4Mock.setPoolIdSqrtPriceX96(ETHUSDCPoolId, 1 << 96);
         licredity.setPoolManagerAndPoolId(address(uniswapV4Mock), ETHUSDCPoolId);
-        
+
         oracle = new ChainlinkOracle(address(licredity), address(this));
 
         oracle.initializeUniswapV4Module(address(v4Manager), address(0xbD216513d74C8cf14cf4747E6AaA6420FF64ee9e));
