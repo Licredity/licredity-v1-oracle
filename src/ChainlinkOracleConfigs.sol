@@ -8,6 +8,7 @@ import {IChainlinkOracleConfigs} from "./interfaces/IChainlinkOracleConfigs.sol"
 import {ChainlinkFeedLibrary} from "./libraries/ChainlinkFeedLibrary.sol";
 import {FixedPointMath} from "./libraries/FixedPointMath.sol";
 import {UniswapV4Module} from "./modules/uniswap/v4/UniswapV4Module.sol";
+import {UniswapV3Module} from "./modules/uniswap/v3/UniswapV3Module.sol";
 
 /// @title ChainlinkOracleConfigs
 /// @notice Abstract contract for Chainlink oracle configurations
@@ -28,6 +29,7 @@ abstract contract ChainlinkOracleConfigs is IChainlinkOracleConfigs {
     error InvalidMrrPips();
 
     UniswapV4Module internal uniswapV4Module;
+    UniswapV3Module internal uniswapV3Module;
 
     address internal governor;
     mapping(Fungible => FungibleConfig) internal fungibleConfigs;
@@ -86,6 +88,18 @@ abstract contract ChainlinkOracleConfigs is IChainlinkOracleConfigs {
         uniswapV4Module.setPool(poolId, isWhitelisted);
 
         emit SetUniswapV4Pool(poolId, isWhitelisted);
+    }
+
+    function initializeUniswapV3Module(address uniswapV3Factory, address positionManager) external onlyGovernor {
+        uniswapV3Module.initialize(uniswapV3Factory, positionManager);
+
+        emit InitializeUniswapV3Module(uniswapV3Factory, positionManager);
+    }
+
+    function setUniswapV3Pool(address token, bool isWhitelisted) external onlyGovernor {
+        uniswapV3Module.setWhitelistToken(token, isWhitelisted);
+
+        emit SetUniswapV3Token(token, isWhitelisted);
     }
 
     function _getQuoteFungibleDecimals() internal view virtual returns (uint256 decimals);

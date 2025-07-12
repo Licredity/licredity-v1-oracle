@@ -30,11 +30,8 @@ library UniswapV3ModuleLibrary {
         self.positionManager = INonfungiblePositionManager(positionManager);
     }
 
-    function setWhitelistToken(UniswapV3Module storage self, address token0, address token1, bool isWhitelisted)
-        internal
-    {
-        self.isWhitelistedToken[token0] = isWhitelisted;
-        self.isWhitelistedToken[token1] = isWhitelisted;
+    function setWhitelistToken(UniswapV3Module storage self, address token, bool isWhitelisted) internal {
+        self.isWhitelistedToken[token] = isWhitelisted;
     }
 
     function _getFeeGrowthInside(IUniswapV3Pool pool, int24 tickCurrent, int24 tickLower, int24 tickUpper)
