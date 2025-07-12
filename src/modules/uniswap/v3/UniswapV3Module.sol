@@ -56,68 +56,110 @@ library UniswapV3ModuleLibrary {
         }
     }
 
+    struct PositionData {
+        address token0;
+        address token1;
+        uint24 fee;
+        int24 tickLower;
+        int24 tickUpper;
+        uint128 liquidity;
+        uint256 feeGrowthInside0LastX128;
+        uint256 feeGrowthInside1LastX128;
+        uint128 tokensOwed0;
+        uint128 tokensOwed1;
+    }
+
+    function _getPositionData(address positionManager, uint256 tokenId)
+        internal
+        view
+        returns (PositionData memory positionData)
+    {
+        assembly ("memory-safe") {
+            positionData := mload(0x40)
+
+            mstore(0x00, 0x99fbab88)
+            mstore(0x20, tokenId)
+
+            let success := staticcall(gas(), positionManager, 0x1c, 0x24, 0x00, 0x00)
+            if iszero(success) {
+                mstore(0x00, 0x444f8dff) // getPositionDataError()
+                revert(0x1c, 0x04)
+            }
+
+            returndatacopy(positionData, 0x40, 0x140)
+            mstore(0x40, add(positionData, 0x140))
+        }
+    }
+
     function getPositionValue(UniswapV3Module storage self, uint256 tokenId)
         internal
         view
         returns (Fungible fungible0, uint256 amount0, Fungible fungible1, uint256 amount1)
     {
-        (
-            ,
-            ,
-            address token0,
-            address token1,
-            uint24 fee,
-            int24 tickLower,
-            int24 tickUpper,
-            uint128 liquidity,
-            uint256 feeGrowthInside0LastX128,
-            uint256 feeGrowthInside1LastX128,
-            uint128 tokensOwed0,
-            uint128 tokensOwed1
-        ) = self.positionManager.positions(tokenId);
+        PositionData memory positionData;
 
-        fungible0 = Fungible.wrap(token0);
-        fungible1 = Fungible.wrap(token1);
+        positionData = _getPositionData(address(self.positionManager), tokenId);
 
-        IUniswapV3Pool pool = IUniswapV3Pool(self.uniswapV3Factory.computeAddress(token0, token1, fee));
+        fungible0 = Fungible.wrap(positionData.token0);
+        fungible1 = Fungible.wrap(positionData.token1);
 
-        (uint160 sqrtPriceX96, int24 tickCurrent,,,,,) = pool.slot0();
+        if (self.isWhitelistedToken[positionData.token0] && self.isWhitelistedToken[positionData.token1]) {
+            IUniswapV3Pool pool = IUniswapV3Pool(
+                self.uniswapV3Factory.computeAddress(positionData.token0, positionData.token1, positionData.fee)
+            );
 
-        // fee growth inside the position
-        {
-            (uint256 poolFeeGrowthInside0LastX128, uint256 poolFeeGrowthInside1LastX128) =
-                _getFeeGrowthInside(pool, tickCurrent, tickLower, tickUpper);
+            (uint160 sqrtPriceX96, int24 tickCurrent,,,,,) = pool.slot0();
 
-            amount0 = FullMath.mulDiv(
-                feeGrowthInside0LastX128 - poolFeeGrowthInside0LastX128, liquidity, FixedPoint128.Q128
-            ) + tokensOwed0;
+            // fee growth inside the position
+            {
+                (uint256 poolFeeGrowthInside0LastX128, uint256 poolFeeGrowthInside1LastX128) =
+                    _getFeeGrowthInside(pool, tickCurrent, positionData.tickLower, positionData.tickUpper);
 
-            amount1 = FullMath.mulDiv(
-                feeGrowthInside1LastX128 - poolFeeGrowthInside1LastX128, liquidity, FixedPoint128.Q128
-            ) + tokensOwed1;
-        }
+                amount0 = FullMath.mulDiv(
+                    positionData.feeGrowthInside0LastX128 - poolFeeGrowthInside0LastX128,
+                    positionData.liquidity,
+                    FixedPoint128.Q128
+                ) + positionData.tokensOwed0;
 
-        // Calculates the principal (currently acting as liquidity) owed to the token owner
-        {
-            if (tickCurrent < tickLower) {
-                amount0 += SqrtPriceMath.getAmount0Delta(
-                    TickMath.getSqrtPriceAtTick(tickLower), TickMath.getSqrtPriceAtTick(tickUpper), liquidity, false
-                );
-            } else if (tickCurrent < tickUpper) {
-                amount0 += SqrtPriceMath.getAmount0Delta(
-                    sqrtPriceX96, TickMath.getSqrtPriceAtTick(tickUpper), liquidity, false
-                );
-                amount1 += SqrtPriceMath.getAmount1Delta(
-                    TickMath.getSqrtPriceAtTick(tickLower), sqrtPriceX96, liquidity, false
-                );
-            } else {
-                amount1 += SqrtPriceMath.getAmount1Delta(
-                    TickMath.getSqrtPriceAtTick(tickLower), TickMath.getSqrtPriceAtTick(tickUpper), liquidity, false
-                );
+                amount1 = FullMath.mulDiv(
+                    positionData.feeGrowthInside1LastX128 - poolFeeGrowthInside1LastX128,
+                    positionData.liquidity,
+                    FixedPoint128.Q128
+                ) + positionData.tokensOwed1;
             }
-        }
 
-        if (self.isWhitelistedToken[token0] && self.isWhitelistedToken[token1]) {} else {
+            // Calculates the principal (currently acting as liquidity) owed to the token owner
+            {
+                if (tickCurrent < positionData.tickLower) {
+                    amount0 += SqrtPriceMath.getAmount0Delta(
+                        TickMath.getSqrtPriceAtTick(positionData.tickLower),
+                        TickMath.getSqrtPriceAtTick(positionData.tickUpper),
+                        positionData.liquidity,
+                        false
+                    );
+                } else if (tickCurrent < positionData.tickUpper) {
+                    amount0 += SqrtPriceMath.getAmount0Delta(
+                        sqrtPriceX96,
+                        TickMath.getSqrtPriceAtTick(positionData.tickUpper),
+                        positionData.liquidity,
+                        false
+                    );
+                    amount1 += SqrtPriceMath.getAmount1Delta(
+                        TickMath.getSqrtPriceAtTick(positionData.tickLower),
+                        sqrtPriceX96,
+                        positionData.liquidity,
+                        false
+                    );
+                } else {
+                    amount1 += SqrtPriceMath.getAmount1Delta(
+                        TickMath.getSqrtPriceAtTick(positionData.tickLower),
+                        TickMath.getSqrtPriceAtTick(positionData.tickUpper),
+                        positionData.liquidity,
+                        false
+                    );
+                }
+            }
+        } else {
             // if the token is not whitelisted
             amount0 = 0;
             amount1 = 0;

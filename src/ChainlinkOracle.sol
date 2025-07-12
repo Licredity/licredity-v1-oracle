@@ -165,22 +165,29 @@ contract ChainlinkOracle is IChainlinkOracle, ChainlinkOracleConfigs {
         view
         returns (uint256 value, uint256 marginRequirement)
     {
+        Fungible fungible0;
+        uint256 amount0;
+
+        Fungible fungible1;
+        uint256 amount1;
+
         // dispatch to other modules using token address
         if (nonFungible.tokenAddress() == address(uniswapV4Module.positionManager)) {
-            (Fungible fungible0, uint256 amount0, Fungible fungible1, uint256 amount1) =
-                uniswapV4Module.getPositionValue(nonFungible.tokenId());
+            (fungible0, amount0, fungible1, amount1) = uniswapV4Module.getPositionValue(nonFungible.tokenId());
+        } else if (nonFungible.tokenAddress() == address(uniswapV3Module.positionManager)) {
+            (fungible0, amount0, fungible1, amount1) = uniswapV3Module.getPositionValue(nonFungible.tokenId());
+        }
 
-            if (amount0 > 0) {
-                (uint256 debtToken0Amount, uint256 margin0Requirement) = _quoteFungible(fungible0, amount0);
-                value += debtToken0Amount;
-                marginRequirement += margin0Requirement;
-            }
+        if (amount0 > 0) {
+            (uint256 debtToken0Amount, uint256 margin0Requirement) = _quoteFungible(fungible0, amount0);
+            value += debtToken0Amount;
+            marginRequirement += margin0Requirement;
+        }
 
-            if (amount1 > 0) {
-                (uint256 debtToken1Amount, uint256 margin1Requirement) = _quoteFungible(fungible1, amount1);
-                value += debtToken1Amount;
-                marginRequirement += margin1Requirement;
-            }
+        if (amount1 > 0) {
+            (uint256 debtToken1Amount, uint256 margin1Requirement) = _quoteFungible(fungible1, amount1);
+            value += debtToken1Amount;
+            marginRequirement += margin1Requirement;
         }
     }
 }
