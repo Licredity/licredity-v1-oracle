@@ -48,7 +48,7 @@ interface IChainlinkOracleConfigs {
     /// @notice Emitted when a Uniswap V3 token is whitelisted or unwhitelisted
     /// @param token The token
     /// @param isWhitelisted Whether the token is whitelisted
-    event SetUniswapV3Token(address token, bool isWhitelisted);
+    event SetUniswapV3Token(address indexed token, bool isWhitelisted);
 
     /// @notice Updates the governor
     /// @param newGovernor The new governor

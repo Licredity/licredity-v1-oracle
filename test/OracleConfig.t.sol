@@ -125,4 +125,20 @@ contract LicredityChainlinkOracleManageTest is Deployers {
         emit IChainlinkOracleConfigs.SetUniswapV4Pool(poolId, false);
         oracle.setUniswapV4Pool(poolId, false);
     }
+
+    function test_UniswapV3ModuleInit_initalized() public {
+        oracle.initializeUniswapV3Module(
+            address(0x1F98431c8aD98523631AE4a59f267346ea31F984), address(0xC36442b4a4522E871399CD717aBDD847Ab11FE88)
+        );
+        vm.expectRevert(AlreadyInitialized.selector);
+        oracle.initializeUniswapV3Module(
+            address(0x1F98431c8aD98523631AE4a59f267346ea31F984), address(0xC36442b4a4522E871399CD717aBDD847Ab11FE88)
+        );
+    }
+
+    function test_UniswapV3Module_update(address token) public {
+        vm.expectEmit(true, false, false, true);
+        emit IChainlinkOracleConfigs.SetUniswapV3Token(token, true);
+        oracle.setUniswapV3Token(token, true);
+    }
 }

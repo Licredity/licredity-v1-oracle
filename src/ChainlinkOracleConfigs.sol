@@ -96,7 +96,7 @@ abstract contract ChainlinkOracleConfigs is IChainlinkOracleConfigs {
         emit InitializeUniswapV3Module(uniswapV3Factory, positionManager);
     }
 
-    function setUniswapV3Pool(address token, bool isWhitelisted) external onlyGovernor {
+    function setUniswapV3Token(address token, bool isWhitelisted) external onlyGovernor {
         uniswapV3Module.setWhitelistToken(token, isWhitelisted);
 
         emit SetUniswapV3Token(token, isWhitelisted);
