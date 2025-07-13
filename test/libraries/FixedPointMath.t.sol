@@ -96,10 +96,10 @@ contract FixedPointMathTest is Test {
 
         assertEq(success0, success1);
         if (success0) {
-            int256 expWadRes = abi.decode(result1, (int256));
-            int256 wadRes = (expWadRes << 78) / 5 ** 18;
+            int256 expWadX96Res = abi.decode(result0, (int256));
+            int256 wadRes = (expWadX96Res * 1e18) >> 96;
 
-            assertApproxEqRel(abi.decode(result0, (int256)), wadRes, 0.1 ether);
+            assertApproxEqRel(wadRes, abi.decode(result1, (int256)), 0.01 ether);
         }
     }
 
