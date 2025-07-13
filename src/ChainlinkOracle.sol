@@ -74,7 +74,7 @@ contract ChainlinkOracle is IChainlinkOracle, ChainlinkOracleConfigs {
     }
 
     /// @inheritdoc IOracle
-    function quoteNonFungibles(NonFungible[] memory nonFungibles)
+    function quoteNonFungibles(NonFungible[] calldata nonFungibles)
         external
         returns (uint256 value, uint256 marginRequirement)
     {

@@ -10,6 +10,8 @@ import {SqrtPriceMath} from "@uniswap-v4-core/libraries/SqrtPriceMath.sol";
 import {IUniswapV3Pool} from "./interfaces/IUniswapV3Pool.sol";
 import {INonfungiblePositionManager} from "./interfaces/INonfungiblePositionManager.sol";
 
+import {console} from "@forge-std/console.sol";
+
 struct UniswapV3Module {
     address uniswapV3Factory;
     INonfungiblePositionManager positionManager;
@@ -42,17 +44,19 @@ library UniswapV3ModuleLibrary {
         (,, uint256 lowerFeeGrowthOutside0X128, uint256 lowerFeeGrowthOutside1X128,,,,) = pool.ticks(tickLower);
         (,, uint256 upperFeeGrowthOutside0X128, uint256 upperFeeGrowthOutside1X128,,,,) = pool.ticks(tickUpper);
 
-        if (tickCurrent < tickLower) {
-            feeGrowthInside0X128 = lowerFeeGrowthOutside0X128 - upperFeeGrowthOutside0X128;
-            feeGrowthInside1X128 = lowerFeeGrowthOutside1X128 - upperFeeGrowthOutside1X128;
-        } else if (tickCurrent < tickUpper) {
-            uint256 feeGrowthGlobal0X128 = pool.feeGrowthGlobal0X128();
-            uint256 feeGrowthGlobal1X128 = pool.feeGrowthGlobal1X128();
-            feeGrowthInside0X128 = feeGrowthGlobal0X128 - lowerFeeGrowthOutside0X128 - upperFeeGrowthOutside0X128;
-            feeGrowthInside1X128 = feeGrowthGlobal1X128 - lowerFeeGrowthOutside1X128 - upperFeeGrowthOutside1X128;
-        } else {
-            feeGrowthInside0X128 = upperFeeGrowthOutside0X128 - lowerFeeGrowthOutside0X128;
-            feeGrowthInside1X128 = upperFeeGrowthOutside1X128 - lowerFeeGrowthOutside1X128;
+        unchecked {
+            if (tickCurrent < tickLower) {
+                feeGrowthInside0X128 = lowerFeeGrowthOutside0X128 - upperFeeGrowthOutside0X128;
+                feeGrowthInside1X128 = lowerFeeGrowthOutside1X128 - upperFeeGrowthOutside1X128;
+            } else if (tickCurrent < tickUpper) {
+                uint256 feeGrowthGlobal0X128 = pool.feeGrowthGlobal0X128();
+                uint256 feeGrowthGlobal1X128 = pool.feeGrowthGlobal1X128();
+                feeGrowthInside0X128 = feeGrowthGlobal0X128 - lowerFeeGrowthOutside0X128 - upperFeeGrowthOutside0X128;
+                feeGrowthInside1X128 = feeGrowthGlobal1X128 - lowerFeeGrowthOutside1X128 - upperFeeGrowthOutside1X128;
+            } else {
+                feeGrowthInside0X128 = upperFeeGrowthOutside0X128 - lowerFeeGrowthOutside0X128;
+                feeGrowthInside1X128 = upperFeeGrowthOutside1X128 - lowerFeeGrowthOutside1X128;
+            }
         }
     }
 
@@ -127,7 +131,6 @@ library UniswapV3ModuleLibrary {
                     FixedPoint128.Q128
                 ) + positionData.tokensOwed1;
             }
-
             // Calculates the principal (currently acting as liquidity) owed to the token owner
             {
                 if (tickCurrent < positionData.tickLower) {
@@ -139,16 +142,10 @@ library UniswapV3ModuleLibrary {
                     );
                 } else if (tickCurrent < positionData.tickUpper) {
                     amount0 += SqrtPriceMath.getAmount0Delta(
-                        sqrtPriceX96,
-                        TickMath.getSqrtPriceAtTick(positionData.tickUpper),
-                        positionData.liquidity,
-                        false
+                        sqrtPriceX96, TickMath.getSqrtPriceAtTick(positionData.tickUpper), positionData.liquidity, false
                     );
                     amount1 += SqrtPriceMath.getAmount1Delta(
-                        TickMath.getSqrtPriceAtTick(positionData.tickLower),
-                        sqrtPriceX96,
-                        positionData.liquidity,
-                        false
+                        TickMath.getSqrtPriceAtTick(positionData.tickLower), sqrtPriceX96, positionData.liquidity, false
                     );
                 } else {
                     amount1 += SqrtPriceMath.getAmount1Delta(

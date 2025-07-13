@@ -56,7 +56,8 @@ contract UniswapV3PoolAddressTest is Test {
     function test_getPositionData(PositionDataMock memory postionMock) public {
         target.setReturnData(postionMock);
 
-        UniswapV3ModuleLibrary.PositionData memory positionData = UniswapV3ModuleLibrary._getPositionData(address(target), 1);
+        UniswapV3ModuleLibrary.PositionData memory positionData =
+            UniswapV3ModuleLibrary._getPositionData(address(target), 1);
 
         assertEq(positionData.token0, postionMock.token0);
         assertEq(positionData.token1, postionMock.token1);
