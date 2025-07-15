@@ -136,9 +136,9 @@ contract LicredityChainlinkOracleManageTest is Deployers {
         );
     }
 
-    function test_UniswapV3Module_update(address token) public {
+    function test_UniswapV3Module_update(address pool) public {
         vm.expectEmit(true, false, false, true);
-        emit IChainlinkOracleConfigs.SetUniswapV3Token(token, true);
-        oracle.setUniswapV3Token(token, true);
+        emit IChainlinkOracleConfigs.SetUniswapV3Pool(pool, true);
+        oracle.setUniswapV3Pool(pool, true);
     }
 }

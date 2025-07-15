@@ -74,6 +74,17 @@ contract NonFungibleOracleTest is Deployers {
         assertEq(marginRequirement, 0);
     }
 
+    function test_UniswapV3_quoteNonFungible_ETHUSDC_zero() public {
+        NonFungible nft = getUniswapV3NonFungible(922276);
+
+        NonFungible[] memory nonFungibles = new NonFungible[](1);
+        nonFungibles[0] = nft;
+
+        (uint256 value, uint256 marginRequirement) = oracle.quoteNonFungibles(nonFungibles);
+        assertEq(value, 0);
+        assertEq(marginRequirement, 0);
+    }
+
     function test_UniswapV4_quoteNonFungible_ETHUSDC() public {
         NonFungible nft = getUniswapV4NonFungible(23864);
 
@@ -102,9 +113,7 @@ contract NonFungibleOracleTest is Deployers {
         nonFungibles[0] = nft;
 
         address WETH = address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
-
-        oracle.setUniswapV3Token(USDC, true);
-        oracle.setUniswapV3Token(WETH, true);
+        oracle.setUniswapV3Pool(address(0x88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640), true);
 
         oracle.setFungibleConfig(Fungible.wrap(WETH), 10, ZERO_ORACLE, ZERO_ORACLE);
         oracle.setFungibleConfig(

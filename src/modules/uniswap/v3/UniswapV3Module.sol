@@ -15,7 +15,7 @@ import {console} from "@forge-std/console.sol";
 struct UniswapV3Module {
     address uniswapV3Factory;
     INonfungiblePositionManager positionManager;
-    mapping(address token => bool enabled) isWhitelistedToken;
+    mapping(address poolAddress => bool enabled) isWhitelistedPool;
 }
 
 using UniswapV3ModuleLibrary for UniswapV3Module global;
@@ -32,8 +32,8 @@ library UniswapV3ModuleLibrary {
         self.positionManager = INonfungiblePositionManager(positionManager);
     }
 
-    function setWhitelistToken(UniswapV3Module storage self, address token, bool isWhitelisted) internal {
-        self.isWhitelistedToken[token] = isWhitelisted;
+    function setWhitelistPool(UniswapV3Module storage self, address poolAddress, bool isWhitelisted) internal {
+        self.isWhitelistedPool[poolAddress] = isWhitelisted;
     }
 
     function _getFeeGrowthInside(IUniswapV3Pool pool, int24 tickCurrent, int24 tickLower, int24 tickUpper)
@@ -107,11 +107,11 @@ library UniswapV3ModuleLibrary {
         fungible0 = Fungible.wrap(positionData.token0);
         fungible1 = Fungible.wrap(positionData.token1);
 
-        if (self.isWhitelistedToken[positionData.token0] && self.isWhitelistedToken[positionData.token1]) {
-            IUniswapV3Pool pool = IUniswapV3Pool(
-                self.uniswapV3Factory.computeAddress(positionData.token0, positionData.token1, positionData.fee)
-            );
+        IUniswapV3Pool pool = IUniswapV3Pool(
+            self.uniswapV3Factory.computeAddress(positionData.token0, positionData.token1, positionData.fee)
+        );
 
+        if (self.isWhitelistedPool[address(pool)]) {
             (uint160 sqrtPriceX96, int24 tickCurrent,,,,,) = pool.slot0();
 
             // fee growth inside the position

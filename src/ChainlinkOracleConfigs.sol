@@ -96,10 +96,10 @@ abstract contract ChainlinkOracleConfigs is IChainlinkOracleConfigs {
         emit InitializeUniswapV3Module(uniswapV3Factory, positionManager);
     }
 
-    function setUniswapV3Token(address token, bool isWhitelisted) external onlyGovernor {
-        uniswapV3Module.setWhitelistToken(token, isWhitelisted);
+    function setUniswapV3Pool(address pool, bool isWhitelisted) external onlyGovernor {
+        uniswapV3Module.setWhitelistPool(pool, isWhitelisted);
 
-        emit SetUniswapV3Token(token, isWhitelisted);
+        emit SetUniswapV3Pool(pool, isWhitelisted);
     }
 
     function _getQuoteFungibleDecimals() internal view virtual returns (uint256 decimals);
