@@ -12,6 +12,10 @@ library PoolAddressLibrary {
         assembly ("memory-safe") {
             let m := mload(0x40) // Cache the free memory pointer.
 
+            // 0x00 - 0x01: 0xff (1 bytes)
+            // 0x01 - 0x15: factory address (20 bytes)
+            // 0x15 - 0x35: salt (32 bytes)
+            // 0x25 - 0x55: POOL_INIT_CODE_HASH (32 bytes)
             mstore(0x00, and(token0, 0xffffffffffffffffffffffffffffffffffffffff))
             mstore(0x20, and(token1, 0xffffffffffffffffffffffffffffffffffffffff))
             mstore(0x40, and(fee, 0xffffff))
