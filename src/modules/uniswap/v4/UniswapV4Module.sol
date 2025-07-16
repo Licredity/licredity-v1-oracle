@@ -64,7 +64,7 @@ library UniswapV4ModuleLibrary {
     /// @return fungible0 The first fungible
     /// @return amount0 The amount of the first fungible
     /// @return fungible1 The second fungible
-    /// @return amount1 The amount of the second fungibl
+    /// @return amount1 The amount of the second fungible
     function getPositionValue(UniswapV4Module storage self, uint256 positionId)
         internal
         view
