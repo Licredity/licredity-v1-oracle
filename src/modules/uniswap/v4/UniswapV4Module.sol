@@ -41,8 +41,8 @@ library UniswapV4ModuleLibrary {
 
     /// @notice Initialize the module
     /// @param self The module to initialize
-    /// @param poolManager The pool manager address
-    /// @param positionManager The position manager address
+    /// @param poolManager The pool manager
+    /// @param positionManager The position manager
     function initialize(UniswapV4Module storage self, address poolManager, address positionManager) internal {
         require(address(self.poolManager) == address(0), AlreadyInitialized());
 
@@ -60,11 +60,11 @@ library UniswapV4ModuleLibrary {
 
     /// @notice Gets the fungibles and amounts for a given position ID
     /// @param self The module to query
-    /// @param positionId The position ID to get the values for
-    /// @return fungible0 The first fungible in the position
-    /// @return amount0 The amount of the first fungible in the position
-    /// @return fungible1 The second fungible in the position
-    /// @return amount1 The amount of the second fungible in the position
+    /// @param positionId The position ID to get fungibles and amounts for
+    /// @return fungible0 The first fungible
+    /// @return amount0 The amount of the first fungible
+    /// @return fungible1 The second fungible
+    /// @return amount1 The amount of the second fungibl
     function getPositionValue(UniswapV4Module storage self, uint256 positionId)
         internal
         view
