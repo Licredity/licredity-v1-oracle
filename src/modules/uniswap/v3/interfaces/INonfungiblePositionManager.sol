@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity >=0.8.0;
 
+/// @dev Modified from
+/// https://github.com/Uniswap/v3-periphery/blob/main/contracts/interfaces/INonfungiblePositionManager.sol
 interface INonfungiblePositionManager {
     /// @notice Returns the position information associated with a given token ID.
     /// @dev Throws if the token ID is not valid.

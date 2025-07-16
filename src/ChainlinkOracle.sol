@@ -167,7 +167,6 @@ contract ChainlinkOracle is IChainlinkOracle, ChainlinkOracleConfigs {
     {
         Fungible fungible0;
         uint256 amount0;
-
         Fungible fungible1;
         uint256 amount1;
 
@@ -179,15 +178,15 @@ contract ChainlinkOracle is IChainlinkOracle, ChainlinkOracleConfigs {
         }
 
         if (amount0 > 0) {
-            (uint256 debtToken0Amount, uint256 margin0Requirement) = _quoteFungible(fungible0, amount0);
-            value += debtToken0Amount;
-            marginRequirement += margin0Requirement;
+            (uint256 value0, uint256 marginRequirement0) = _quoteFungible(fungible0, amount0);
+            value += value0;
+            marginRequirement += marginRequirement0;
         }
 
         if (amount1 > 0) {
-            (uint256 debtToken1Amount, uint256 margin1Requirement) = _quoteFungible(fungible1, amount1);
-            value += debtToken1Amount;
-            marginRequirement += margin1Requirement;
+            (uint256 value1, uint256 marginRequirement1) = _quoteFungible(fungible1, amount1);
+            value += value1;
+            marginRequirement += marginRequirement1;
         }
     }
 }

@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity >=0.8.0;
 
+/// @dev Modified from
+/// https://github.com/Uniswap/v3-core/blob/main/contracts/interfaces/pool/IUniswapV3PoolState.sol
 interface IUniswapV3Pool {
     /// @notice The 0th storage slot in the pool stores many values, and is exposed as a single method to save gas
     /// when accessed externally.
