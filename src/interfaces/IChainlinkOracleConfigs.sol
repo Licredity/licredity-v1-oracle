@@ -40,6 +40,16 @@ interface IChainlinkOracleConfigs {
     /// @param isWhitelisted Whether the pool is whitelisted
     event SetUniswapV4Pool(PoolId indexed poolId, bool isWhitelisted);
 
+    /// @notice Emitted when the Uniswap V3 module is initialized
+    /// @param uniswapV3Factory The Uniswap V3 factory
+    /// @param positionManager The Uniswap V3position manager
+    event InitializeUniswapV3Module(address indexed uniswapV3Factory, address indexed positionManager);
+
+    /// @notice Emitted when a Uniswap V3 token is whitelisted or unwhitelisted
+    /// @param pool The Uniswap V3 pool address
+    /// @param isWhitelisted Whether the token is whitelisted
+    event SetUniswapV3Pool(address indexed pool, bool isWhitelisted);
+
     /// @notice Updates the governor
     /// @param newGovernor The new governor
     /// @dev Can only be called by the governor
