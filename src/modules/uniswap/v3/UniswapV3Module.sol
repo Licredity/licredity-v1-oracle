@@ -88,17 +88,19 @@ library UniswapV3ModuleLibrary {
                 (uint256 poolFeeGrowthInside0LastX128, uint256 poolFeeGrowthInside1LastX128) =
                     _getFeeGrowthInside(pool, tickCurrent, positionData.tickLower, positionData.tickUpper);
 
-                amount0 += FullMath.mulDiv(
-                    positionData.feeGrowthInside0LastX128 - poolFeeGrowthInside0LastX128,
-                    positionData.liquidity,
-                    FixedPoint128.Q128
-                ) + positionData.tokensOwed0;
+                unchecked {
+                    amount0 += FullMath.mulDiv(
+                        poolFeeGrowthInside0LastX128 - positionData.feeGrowthInside0LastX128,
+                        positionData.liquidity,
+                        FixedPoint128.Q128
+                    ) + positionData.tokensOwed0;
 
-                amount1 += FullMath.mulDiv(
-                    positionData.feeGrowthInside1LastX128 - poolFeeGrowthInside1LastX128,
-                    positionData.liquidity,
-                    FixedPoint128.Q128
-                ) + positionData.tokensOwed1;
+                    amount1 += FullMath.mulDiv(
+                        poolFeeGrowthInside1LastX128 - positionData.feeGrowthInside1LastX128,
+                        positionData.liquidity,
+                        FixedPoint128.Q128
+                    ) + positionData.tokensOwed1;
+                }
             }
 
             // Calculates the principal (currently acting as liquidity) owed to the token owner
