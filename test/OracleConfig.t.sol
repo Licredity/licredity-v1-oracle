@@ -11,7 +11,7 @@ import {IChainlinkOracleConfigs} from "src/interfaces/IChainlinkOracleConfigs.so
 import {IPositionManager} from "src/modules/uniswap/v4/interfaces/IPositionManager.sol";
 import {ChainlinkOracle} from "src/ChainlinkOracle.sol";
 import {FixedPointMath} from "src/libraries/FixedPointMath.sol";
-import {Deployers} from "./Deployers.sol";
+import {Deployers} from "./utils/Deployers.sol";
 
 contract LicredityChainlinkOracleManageTest is Deployers {
     error NotGovernor();
@@ -88,9 +88,8 @@ contract LicredityChainlinkOracleManageTest is Deployers {
         oracle.setFungibleConfig(asset, mrrPips, baseFeed, quoteFeed);
     }
 
-    function test_deleteFungibleFeedsConfig(Fungible asset) public {
-        vm.assume(Fungible.unwrap(asset) != address(VM_ADDRESS));
-
+    function test_deleteFungibleFeedsConfig(uint256 seed) public {
+        Fungible asset = Fungible.wrap(address(uint160(bound(seed, 1000, 1000_000_000))));
         vm.mockCall(Fungible.unwrap(asset), abi.encodeWithSelector(IERC20.decimals.selector), abi.encode(uint8(8)));
         oracle.setFungibleConfig(asset, 10, AggregatorV3Interface(address(0)), AggregatorV3Interface(address(0)));
 

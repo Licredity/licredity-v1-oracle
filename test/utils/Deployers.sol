@@ -14,6 +14,7 @@ import {ChainlinkOracleMock} from "../mock/ChainlinkOracleMock.sol";
 import {DecimalsMock} from "../mock/DecimalsMock.sol";
 import {LicredityMock} from "../mock/LicredityMock.sol";
 import {UniswapV4PoolMock} from "../mock/UniswapV4PoolMock.sol";
+import {TickMath} from "@uniswap-v4-core/libraries/TickMath.sol";
 
 contract Deployers is Test {
     LicredityMock public licredity;
@@ -30,6 +31,9 @@ contract Deployers is Test {
 
     Currency internal currency0;
     Currency internal currency1;
+
+    uint160 public constant MIN_PRICE_LIMIT = TickMath.MIN_SQRT_PRICE + 1;
+    uint160 public constant MAX_PRICE_LIMIT = TickMath.MAX_SQRT_PRICE - 1;
 
     function deployLicredity() public {
         licredity = new LicredityMock();
