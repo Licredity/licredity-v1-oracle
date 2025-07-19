@@ -3,6 +3,9 @@ src = "src"
 out = "out"
 ffi = true
 libs = ["dependencies"]
+fs_permissions = [
+    { access = "read", path = "./test/bin" }
+]
 remappings = [
     "forge-std/=dependencies/forge-std-1.9.7/src/",
     "@forge-std/=dependencies/forge-std-1.9.7/src/",

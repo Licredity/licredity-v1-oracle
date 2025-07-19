@@ -8,7 +8,7 @@ import {PoolId} from "@uniswap-v4-core/types/PoolId.sol";
 import {AggregatorV3Interface} from "src/interfaces/external/AggregatorV3Interface.sol";
 import {IPositionManager} from "src/modules/uniswap/v4/interfaces/IPositionManager.sol";
 import {ChainlinkOracle} from "src/ChainlinkOracle.sol";
-import {Deployers} from "./Deployers.sol";
+import {Deployers} from "./utils/Deployers.sol";
 
 contract NonFungibleOracleTest is Deployers {
     ChainlinkOracle public oracle;

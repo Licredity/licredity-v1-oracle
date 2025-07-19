@@ -16,8 +16,6 @@ struct PositionDataMock {
     uint256 feeGrowthInside1LastX128;
     uint128 tokensOwed0;
     uint128 tokensOwed1;
-    uint160 sqrtPriceX96;
-    int24 tickCurrent;
 }
 
 contract UniswapV3NonfungiblePositionManagerMock is INonfungiblePositionManager {

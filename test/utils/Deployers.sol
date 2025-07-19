@@ -4,15 +4,17 @@ pragma solidity ^0.8.20;
 import {Test} from "@forge-std/Test.sol";
 import {IHooks} from "@uniswap-v4-core/interfaces/IHooks.sol";
 import {IPoolManager} from "@uniswap-v4-core/interfaces/IPoolManager.sol";
+import {PoolSwapTest} from "@uniswap-v4-core/test/PoolSwapTest.sol";
 import {PoolModifyLiquidityTest} from "@uniswap-v4-core/test/PoolModifyLiquidityTest.sol";
 import {TestERC20} from "@uniswap-v4-core/test/TestERC20.sol";
 import {Currency} from "@uniswap-v4-core/types/Currency.sol";
 import {PoolId} from "@uniswap-v4-core/types/PoolId.sol";
 import {PoolKey} from "@uniswap-v4-core/types/PoolKey.sol";
-import {ChainlinkOracleMock} from "./mock/ChainlinkOracleMock.sol";
-import {DecimalsMock} from "./mock/DecimalsMock.sol";
-import {LicredityMock} from "./mock/LicredityMock.sol";
-import {UniswapV4PoolMock} from "./mock/UniswapV4PoolMock.sol";
+import {ChainlinkOracleMock} from "../mock/ChainlinkOracleMock.sol";
+import {DecimalsMock} from "../mock/DecimalsMock.sol";
+import {LicredityMock} from "../mock/LicredityMock.sol";
+import {UniswapV4PoolMock} from "../mock/UniswapV4PoolMock.sol";
+import {TickMath} from "@uniswap-v4-core/libraries/TickMath.sol";
 
 contract Deployers is Test {
     LicredityMock public licredity;
@@ -25,9 +27,13 @@ contract Deployers is Test {
     UniswapV4PoolMock public uniswapV4Mock;
     IPoolManager public v4PoolManager;
     PoolModifyLiquidityTest modifyLiquidityRouter;
+    PoolSwapTest swapRouter;
 
     Currency internal currency0;
     Currency internal currency1;
+
+    uint160 public constant MIN_PRICE_LIMIT = TickMath.MIN_SQRT_PRICE + 1;
+    uint160 public constant MAX_PRICE_LIMIT = TickMath.MAX_SQRT_PRICE - 1;
 
     function deployLicredity() public {
         licredity = new LicredityMock();
@@ -49,15 +55,24 @@ contract Deployers is Test {
         btcETH.setAnswer(40446685000000000000);
     }
 
-    function deployFreshV4Manager() internal {
-        // vm.createSelectFork("ETH", 22909700);
-        vm.createSelectFork("ETH");
-        v4PoolManager = IPoolManager(address(0x000000000004444c5dc75cB358380D2e3dE08A90));
+    function deployFreshV4Manager(address initialOwner, bytes32 salt) internal {
+        bytes memory args = abi.encode(initialOwner);
+        bytes memory bytecode = vm.readFileBinary("test/bin/v4PoolManager.bytecode");
+        bytes memory initcode = abi.encodePacked(bytecode, args);
+
+        address v4PoolManagerAddr;
+        assembly {
+            v4PoolManagerAddr := create2(0, add(initcode, 0x20), mload(initcode), salt)
+        }
+
+        v4PoolManager = IPoolManager(v4PoolManagerAddr);
     }
 
     function deployFreshManagerAndRouters() internal {
-        deployFreshV4Manager();
+        deployFreshV4Manager(address(this), bytes32(0));
         modifyLiquidityRouter = new PoolModifyLiquidityTest(v4PoolManager);
+        swapRouter = new PoolSwapTest(v4PoolManager);
+
         vm.deal(address(modifyLiquidityRouter), 0);
     }
 
@@ -67,6 +82,8 @@ contract Deployers is Test {
 
         _currencyA.approve(address(modifyLiquidityRouter), type(uint256).max);
         _currencyB.approve(address(modifyLiquidityRouter), type(uint256).max);
+        _currencyA.approve(address(swapRouter), type(uint256).max);
+        _currencyB.approve(address(swapRouter), type(uint256).max);
 
         if (address(_currencyA) < address(_currencyB)) {
             currency0 = Currency.wrap(address(_currencyA));
