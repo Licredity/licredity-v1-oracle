@@ -8,7 +8,7 @@
 set -e
 
 # Check if required arguments are provided
-if [ $# -ne 1 ]; then
+if [ $@ -gt 1 ]; then
     echo "Usage: $0 <CHAIN>"
     echo "Available chains: Ethereum, Base, Unichain"
     echo ""
@@ -74,32 +74,23 @@ if [ -z "$PRIVATE_KEY" ]; then
     exit 1
 fi
 
-
-# Create deployments directory if it doesn't exist
-mkdir -p deployments
-
-# Determine which API key to use for verification
-API_KEY_VAR="${CHAIN}_SCAN_API_KEY"
-API_KEY=${!API_KEY_VAR}
-VERIFY_ARGS=""
-
-if [ ! -z "$API_KEY" ]; then
-    VERIFY_ARGS="--verify --etherscan-api-key $API_KEY"
-    echo "Contract verification enabled for $CHAIN"
-else
-    echo "Warning: No API key found for $CHAIN verification (${API_KEY_VAR}). Skipping verification."
-fi
-
 echo ""
 echo "=== Starting Deployment ==="
 echo ""
 
-# Deploy the ChainlinkOracle
-forge script script/Deploy.s.sol:DeployOracleScript \
-    --rpc-url "$RPC_URL" \
-    --broadcast \
-    $VERIFY_ARGS \
-    -vvvv
+# Deploy contracts
+if [[ $2 == "--deploy" ]]; then
+    echo "Dry run deploying contracts..."
+    forge script script/Deploy.s.sol:DeployOracleScript \
+        --rpc-url "$RPC_URL" \
+        --broadcast \
+        -vvv
+else
+    echo "Dry run deploying contracts..."
+    forge script script/Deploy.s.sol:DeployOracleScript \
+        --rpc-url "$RPC_URL" \
+        -vvv
+fi
 
 echo ""
 echo "=== Deployment Complete ==="

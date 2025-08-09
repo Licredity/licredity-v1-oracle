@@ -27,25 +27,5 @@ contract DeployOracleScript is Script {
         vm.stopBroadcast();
         console.log("=== DEPLOYMENT COMPLETE ===");
         console.log("ChainlinkOracle deployed at:", address(oracle));
-
-        // Save deployment
-        string memory fileName = string.concat("./deployments/", chain, "_ChainlinkOracle.env");
-        vm.writeFile(
-            fileName,
-            string.concat(
-                "# Chainlink oracle on ",
-                chain,
-                " deployed at: ",
-                vm.toString(address(oracle)),
-                "\n",
-                "Licredity: ",
-                vm.toString(licredity),
-                "\n",
-                "Governor: ",
-                vm.toString(governor),
-                "\n"
-            )
-        );
-        console.log("Deployment info saved to:", fileName);
     }
 }
