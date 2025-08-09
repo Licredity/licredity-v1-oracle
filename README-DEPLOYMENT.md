@@ -139,11 +139,6 @@ This is typically done through governance proposals.
    - Check that your scan API key is valid
    - Manual verification may be needed for some networks
 
-### Network-Specific Notes
-
-- **Ethereum**: High gas fees, consider deploying during low congestion
-- **Base**: Generally lower fees, good for testing
-- **Unichain**: Check current RPC endpoints and block explorer support
 
 ## Security Considerations
 
@@ -168,11 +163,3 @@ cat .env | grep Ethereum
 # 4. Check deployment
 cat deployments/Ethereum_ChainlinkOracle.env
 ```
-
-## Support
-
-For deployment issues:
-1. Check this documentation
-2. Review the deployment logs
-3. Verify all environment variables
-4. Test with a testnet deployment first
