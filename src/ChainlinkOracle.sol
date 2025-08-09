@@ -177,12 +177,14 @@ contract ChainlinkOracle is IChainlinkOracle, ChainlinkOracleConfigs {
             (fungible0, amount0, fungible1, amount1) = uniswapV3Module.getPositionValue(nonFungible.tokenId());
         }
 
+        // update value and marginRequirement for fungible0
         if (amount0 > 0) {
             (uint256 value0, uint256 marginRequirement0) = _quoteFungible(fungible0, amount0);
             value += value0;
             marginRequirement += marginRequirement0;
         }
 
+        // update value and marginRequirement for fungible1
         if (amount1 > 0) {
             (uint256 value1, uint256 marginRequirement1) = _quoteFungible(fungible1, amount1);
             value += value1;
