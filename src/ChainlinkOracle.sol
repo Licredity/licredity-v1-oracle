@@ -93,9 +93,11 @@ contract ChainlinkOracle is IChainlinkOracle, ChainlinkOracleConfigs {
     function update() public {
         // get current price
         (uint160 sqrtPriceX96,,,) = poolManager.getSlot0(poolId);
+        // price from square root price
+        uint256 priceX96 = (uint256(sqrtPriceX96) * uint256(sqrtPriceX96)) >> 96;
 
         // short circuit if neither price nor timestamp has changed
-        if (sqrtPriceX96 == lastPriceX96 && currentTimeStamp == block.timestamp) {
+        if (priceX96 == lastPriceX96 && currentTimeStamp == block.timestamp) {
             return;
         }
 
@@ -109,9 +111,6 @@ contract ChainlinkOracle is IChainlinkOracle, ChainlinkOracleConfigs {
         // alpha = e ^ -(block.timestamp - lastUpdateTimeStamp)
         int256 power = ((int256(lastUpdateTimeStamp) - int256(block.timestamp)) << 96) / 600;
         uint256 alphaX96 = uint256(power.expWadX96());
-
-        // price from square root price
-        uint256 priceX96 = (uint256(sqrtPriceX96) * uint256(sqrtPriceX96)) >> 96;
 
         // cap cross block price movement to 1.5625%
         // If priceX96 > lastPriceX96 * (1 + 0.015625), priceX96 = lastPriceX96 * (1 + 0.015625)
