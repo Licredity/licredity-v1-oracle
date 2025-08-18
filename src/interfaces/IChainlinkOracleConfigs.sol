@@ -31,9 +31,8 @@ interface IChainlinkOracleConfigs {
     event DeleteFungibleConfig(Fungible indexed fungible);
 
     /// @notice Emitted when the Uniswap V4 module is initialized
-    /// @param poolManager The pool manager
     /// @param positionManager The position manager
-    event InitializeUniswapV4Module(address indexed poolManager, address indexed positionManager);
+    event InitializeUniswapV4Module(address indexed positionManager);
 
     /// @notice Emitted when a Uniswap V4 pool is whitelisted or unwhitelisted
     /// @param poolId The pool ID
@@ -74,10 +73,9 @@ interface IChainlinkOracleConfigs {
     function deleteFungibleConfig(Fungible fungible) external;
 
     /// @notice Initializes the Uniswap V4 module
-    /// @param poolManager The pool manager
     /// @param positionManager The position manager
     /// @dev Can only be called by the governor
-    function initializeUniswapV4Module(address poolManager, address positionManager) external;
+    function initializeUniswapV4Module(address positionManager) external;
 
     /// @notice Sets the whitelisted status of a Uniswap V4 pool
     /// @param poolId The pool ID

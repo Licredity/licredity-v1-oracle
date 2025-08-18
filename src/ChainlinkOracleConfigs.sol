@@ -91,10 +91,10 @@ abstract contract ChainlinkOracleConfigs is IChainlinkOracleConfigs {
     }
 
     /// @inheritdoc IChainlinkOracleConfigs
-    function initializeUniswapV4Module(address poolManager, address positionManager) external onlyGovernor {
-        uniswapV4Module.initialize(poolManager, positionManager);
+    function initializeUniswapV4Module(address positionManager) external onlyGovernor {
+        uniswapV4Module.initialize(positionManager);
 
-        emit InitializeUniswapV4Module(poolManager, positionManager);
+        emit InitializeUniswapV4Module(positionManager);
     }
 
     /// @inheritdoc IChainlinkOracleConfigs
