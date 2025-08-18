@@ -26,7 +26,6 @@ contract NonFungibleOracleTest is Deployers {
         // IPoolManager v4Manager = IPoolManager(address(0x000000000004444c5dc75cB358380D2e3dE08A90));
         ETHUSDCPoolId = PoolId.wrap(bytes32(0x21c67e77068de97969ba93d4aab21826d33ca12bb9f565d8496e8fda8a82ca27));
 
-        address uniswapV3Factory = address(0x1F98431c8aD98523631AE4a59f267346ea31F984);
         address uniswapV3PositionManager = address(0xC36442b4a4522E871399CD717aBDD847Ab11FE88);
 
         uniswapV4Mock.setPoolIdSqrtPriceX96(ETHUSDCPoolId, 1 << 96);
@@ -34,7 +33,7 @@ contract NonFungibleOracleTest is Deployers {
         oracle = new ChainlinkOracle(address(licredity), address(this));
 
         oracle.initializeUniswapV4Module(address(0xbD216513d74C8cf14cf4747E6AaA6420FF64ee9e));
-        oracle.initializeUniswapV3Module(uniswapV3Factory, uniswapV3PositionManager);
+        oracle.initializeUniswapV3Module(uniswapV3PositionManager);
     }
 
     function getUniswapV4NonFungible(uint256 tokenId) public pure returns (NonFungible nft) {

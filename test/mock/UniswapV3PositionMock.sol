@@ -20,9 +20,14 @@ struct PositionDataMock {
 
 contract UniswapV3NonfungiblePositionManagerMock is INonfungiblePositionManager {
     PositionDataMock internal positionData;
+    address public factory;
 
     function setReturnData(PositionDataMock memory _positionData) external {
         positionData = _positionData;
+    }
+
+    function setFactory(address factory_) external {
+        factory = factory_;
     }
 
     function positions(uint256)
