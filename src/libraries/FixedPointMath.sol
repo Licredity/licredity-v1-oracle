@@ -70,7 +70,7 @@ library FixedPointMath {
         }
     }
 
-    /// @dev Returns `x`, bounded to `minValue` and `maxValue`.
+    /// @dev Returns `x`, bounded to `minValue` and `maxValue`, expects `minValue` <= `maxValue`
     function clamp(uint256 x, uint256 minValue, uint256 maxValue) internal pure returns (uint256 z) {
         assembly ("memory-safe") {
             z := xor(x, mul(xor(x, minValue), gt(minValue, x)))
