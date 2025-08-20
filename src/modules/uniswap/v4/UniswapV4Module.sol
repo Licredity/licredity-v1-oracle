@@ -43,7 +43,7 @@ library UniswapV4ModuleLibrary {
     /// @param self The module to initialize
     /// @param positionManager The position manager
     function initialize(UniswapV4Module storage self, address positionManager) internal {
-        require(address(self.poolManager) == address(0), AlreadyInitialized());
+        require(address(self.positionManager) == address(0), AlreadyInitialized());
 
         self.poolManager = IPositionManager(positionManager).poolManager();
         self.positionManager = IPositionManager(positionManager);
