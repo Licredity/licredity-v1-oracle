@@ -12,6 +12,11 @@ interface IChainlinkOracleConfigs {
     /// @param newGovernor The new governor
     event UpdateGovernor(address indexed newGovernor);
 
+    /// @notice Emitted when the maximum staleness is updated
+    /// @param newMaxStaleness The new maximum staleness in seconds
+    /// @dev This is the maximum time a Chainlink feed can be stale before it is
+    event UpdateMaxStaleness(uint256 newMaxStaleness);
+
     /// @notice Emitted when the configuration for a fungible is set
     /// @param fungible The fungible
     /// @param mrrPips The margin requirement ratio in pips

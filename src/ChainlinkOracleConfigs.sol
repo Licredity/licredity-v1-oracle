@@ -32,6 +32,7 @@ abstract contract ChainlinkOracleConfigs is IChainlinkOracleConfigs {
     UniswapV4Module internal uniswapV4Module;
 
     address internal governor;
+    uint256 internal maxStaleness = 1 days;
     mapping(Fungible => FungibleConfig) internal fungibleConfigs;
 
     modifier onlyGovernor() {
@@ -48,6 +49,12 @@ abstract contract ChainlinkOracleConfigs is IChainlinkOracleConfigs {
         governor = newGovernor;
 
         emit UpdateGovernor(newGovernor);
+    }
+
+    function updateMaxStaleness(uint256 newMaxStaleness) external onlyGovernor {
+        maxStaleness = newMaxStaleness;
+
+        emit UpdateMaxStaleness(maxStaleness);
     }
 
     /// @inheritdoc IChainlinkOracleConfigs
