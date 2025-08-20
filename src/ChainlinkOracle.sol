@@ -47,6 +47,8 @@ contract ChainlinkOracle is IChainlinkOracle, ChainlinkOracleConfigs {
         currentTimeStamp = block.timestamp;
 
         (uint160 sqrtPriceX96,,,) = poolManager.getSlot0(poolId);
+        require(sqrtPriceX96 != 0);
+
         currentPriceX96 = (uint256(sqrtPriceX96) * uint256(sqrtPriceX96)) >> 96;
         lastPriceX96 = currentPriceX96;
         emaPrice = (currentPriceX96 * 1e18) >> 96;
