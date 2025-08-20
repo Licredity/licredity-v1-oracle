@@ -41,12 +41,11 @@ library UniswapV4ModuleLibrary {
 
     /// @notice Initialize the module
     /// @param self The module to initialize
-    /// @param poolManager The pool manager
     /// @param positionManager The position manager
-    function initialize(UniswapV4Module storage self, address poolManager, address positionManager) internal {
-        require(address(self.poolManager) == address(0), AlreadyInitialized());
+    function initialize(UniswapV4Module storage self, address positionManager) internal {
+        require(address(self.positionManager) == address(0), AlreadyInitialized());
 
-        self.poolManager = IPoolManager(poolManager);
+        self.poolManager = IPositionManager(positionManager).poolManager();
         self.positionManager = IPositionManager(positionManager);
     }
 

@@ -3,7 +3,11 @@ pragma solidity >=0.8.0;
 
 /// @dev Modified from
 /// https://github.com/Uniswap/v3-periphery/blob/main/contracts/interfaces/INonfungiblePositionManager.sol
+/// https://github.com/Uniswap/v3-periphery/blob/main/contracts/interfaces/IPeripheryImmutableState.sol
 interface INonfungiblePositionManager {
+    /// @return Returns the address of the Uniswap V3 factory
+    function factory() external view returns (address);
+
     /// @notice Returns the position information associated with a given token ID.
     /// @dev Throws if the token ID is not valid.
     /// @param tokenId The ID of the token that represents the position
