@@ -8,6 +8,7 @@ contract ChainlinkOracleMock is AggregatorV3Interface {
     string public description;
     uint256 public constant version = 1;
     int256 public answer;
+    uint256 public updatedAt;
 
     constructor(uint8 decimals_, string memory description_) {
         decimals = decimals_;
@@ -18,7 +19,11 @@ contract ChainlinkOracleMock is AggregatorV3Interface {
         answer = answer_;
     }
 
+    function setUpdatedAt(uint256 updatedAt_) public {
+        updatedAt = updatedAt_;
+    }
+
     function latestRoundData() public view override returns (uint80, int256, uint256, uint256, uint80) {
-        return (0, answer, 0, 0, 0);
+        return (0, answer, 0, updatedAt, 0);
     }
 }

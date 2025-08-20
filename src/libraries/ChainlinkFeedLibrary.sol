@@ -7,15 +7,17 @@ import {AggregatorV3Interface} from "../interfaces/external/AggregatorV3Interfac
 /// @notice Library for interacting with Chainlink feeds
 library ChainlinkFeedLibrary {
     error NegativeAnswer();
+    error FeedOutage();
 
     /// @notice Gets the latest price from a Chainlink feed
     /// @param feed The Chainlink feed to query
     /// @return price The latest price from the feed
     /// @dev When `feed` is not set (address zero), returns 1
-    function getPrice(AggregatorV3Interface feed) internal view returns (uint256 price) {
+    function getPrice(AggregatorV3Interface feed, uint256 maxStaleness) internal view returns (uint256 price) {
         if (address(feed) == address(0)) return 1;
 
-        (, int256 answer,,,) = feed.latestRoundData();
+        (, int256 answer,, uint256 updatedAt,) = feed.latestRoundData();
+        require(updatedAt > block.timestamp - maxStaleness, FeedOutage());
 
         assembly ("memory-safe") {
             // require(answer >= 0, NegativeAnswer());

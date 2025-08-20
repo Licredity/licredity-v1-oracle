@@ -50,6 +50,19 @@ contract LicredityChainlinkOracleManageTest is Deployers {
         vm.stopPrank();
     }
 
+    function test_updateMaxStaleness() public {
+        vm.expectEmit(true, false, false, false);
+        emit IChainlinkOracleConfigs.UpdateMaxStaleness(2 days);
+        oracle.updateMaxStaleness(2 days);
+    }
+
+    function test_updateMaxStaleness_notGovernor() public {
+        vm.startPrank(address(1));
+        vm.expectRevert(NotGovernor.selector);
+        oracle.updateMaxStaleness(2 days);
+        vm.stopPrank();
+    }
+
     function test_updateFungibleFeedsConfig(
         uint8 decimals,
         uint24 mrrPips,
