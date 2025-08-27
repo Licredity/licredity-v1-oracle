@@ -32,11 +32,22 @@ abstract contract ChainlinkOracleConfigs is IChainlinkOracleConfigs {
     UniswapV4Module internal uniswapV4Module;
 
     address internal governor;
+    address internal nextGovernor;
     mapping(Fungible => FungibleConfig) internal fungibleConfigs;
 
     modifier onlyGovernor() {
-        require(msg.sender == governor, NotGovernor());
+        _onlyGovernor();
         _;
+    }
+
+    function _onlyGovernor() internal view {
+        // require(msg.sender == governor, NotGovernor());
+        assembly ("memory-safe") {
+            if iszero(eq(caller(), sload(governor.slot))) {
+                mstore(0x00, 0xee3675d4) // 'NotGovernor()'
+                revert(0x1c, 0x04)
+            }
+        }
     }
 
     constructor(address _governor) {
@@ -44,10 +55,40 @@ abstract contract ChainlinkOracleConfigs is IChainlinkOracleConfigs {
     }
 
     /// @inheritdoc IChainlinkOracleConfigs
-    function updateGovernor(address newGovernor) external onlyGovernor {
-        governor = newGovernor;
+    function appointNextGovernor(address _nextGovernor) external onlyGovernor {
+        assembly ("memory-safe") {
+            _nextGovernor := and(_nextGovernor, 0xffffffffffffffffffffffffffffffffffffffff)
 
-        emit UpdateGovernor(newGovernor);
+            // nextGovernor = _nextGovernor;
+            sstore(nextGovernor.slot, _nextGovernor)
+
+            // emit AppointNextGovernor(_nextGovernor);
+            log2(0x00, 0x00, 0x192874f7d03868e0e27e79172ef01f27e1200fd3a5b08d7b3986fbe037125ee8, _nextGovernor)
+        }
+    }
+
+    /// @inheritdoc IChainlinkOracleConfigs
+    function confirmNextGovernor() external {
+        assembly ("memory-safe") {
+            // require(msg.sender == nextGovernor, NotNextGovernor());
+            if iszero(eq(caller(), sload(nextGovernor.slot))) {
+                mstore(0x00, 0x7dc8c6f8) // 'NotNextGovernor()'
+                revert(0x1c, 0x04)
+            }
+
+            // address lastGovernor = governor;
+            // no dirty bits
+            let lastGovernor := sload(governor.slot)
+
+            // transfer governor role to the next governor and clear nextGovernor
+            // governor = msg.sender;
+            // delete nextGovernor;
+            sstore(governor.slot, caller())
+            sstore(nextGovernor.slot, 0x00)
+
+            // emit ConfirmNextGovernor(lastGovernor, msg.sender);
+            log3(0x00, 0x00, 0x7c33d066bdd1139ec2077fef5825172051fa827c50f89af128ae878e44e44632, lastGovernor, caller())
+        }
     }
 
     /// @inheritdoc IChainlinkOracleConfigs

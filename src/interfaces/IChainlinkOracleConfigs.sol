@@ -8,9 +8,14 @@ import {AggregatorV3Interface} from "./external/AggregatorV3Interface.sol";
 /// @title IChainlinkOracleConfigs
 /// @notice Interface for Chainlink oracle configurations
 interface IChainlinkOracleConfigs {
-    /// @notice Emitted when the governor is updated
+    /// @notice Emitted when the next governor is appointed
+    /// @param nextGovernor The next governor
+    event AppointNextGovernor(address indexed nextGovernor);
+
+    /// @notice Emitted when the next governor is confirmed
+    /// @param lastGovernor The last governor
     /// @param newGovernor The new governor
-    event UpdateGovernor(address indexed newGovernor);
+    event ConfirmNextGovernor(address indexed lastGovernor, address indexed newGovernor);
 
     /// @notice Emitted when the configuration for a fungible is set
     /// @param fungible The fungible
@@ -50,10 +55,14 @@ interface IChainlinkOracleConfigs {
     /// @param isWhitelisted Whether the pool is whitelisted
     event SetUniswapV3Pool(address indexed pool, bool isWhitelisted);
 
-    /// @notice Updates the governor
-    /// @param newGovernor The new governor
-    /// @dev Can only be called by the governor
-    function updateGovernor(address newGovernor) external;
+    /// @notice Appoints the next governor
+    /// @param nextGovernor The next governor
+    /// @dev Can only be called by the current governor
+    function appointNextGovernor(address nextGovernor) external;
+
+    /// @notice Confirms the new governor
+    /// @dev Can only be called by the next governor
+    function confirmNextGovernor() external;
 
     /// @notice Sets the configuration for a fungible
     /// @param fungible The fungible to configure for

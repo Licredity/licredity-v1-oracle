@@ -15,6 +15,7 @@ import {Deployers} from "./utils/Deployers.sol";
 
 contract LicredityChainlinkOracleManageTest is Deployers {
     error NotGovernor();
+    error NotNextGovernor();
     error NotExistFungibleFeedConfig();
     error AlreadyInitialized();
     error InvalidMrrPips();
@@ -37,16 +38,33 @@ contract LicredityChainlinkOracleManageTest is Deployers {
         licredityFungible = address(licredity);
     }
 
-    function test_updateGovernor() public {
+    function test_appointNextGovernor() public {
         vm.expectEmit(true, false, false, false);
-        emit IChainlinkOracleConfigs.UpdateGovernor(address(1));
-        oracle.updateGovernor(address(1));
+        emit IChainlinkOracleConfigs.AppointNextGovernor(address(1));
+        oracle.appointNextGovernor(address(1));
     }
 
-    function test_updateGovernor_notGovernor() public {
+    function test_appointNextGovernor_notGovernor() public {
         vm.startPrank(address(1));
         vm.expectRevert(NotGovernor.selector);
-        oracle.updateGovernor(address(1));
+        oracle.appointNextGovernor(address(1));
+        vm.stopPrank();
+    }
+
+    function test_confirmNextGovernor_notNextGovernor() public {
+        oracle.appointNextGovernor(address(1));
+        vm.startPrank(address(2));
+        vm.expectRevert(NotNextGovernor.selector);
+        oracle.confirmNextGovernor();
+        vm.stopPrank();
+    }
+
+    function test_confirmNextGovernor() public {
+        oracle.appointNextGovernor(address(1));
+        vm.startPrank(address(1));
+        vm.expectEmit(true, false, false, false);
+        emit IChainlinkOracleConfigs.ConfirmNextGovernor(address(this), address(1));
+        oracle.confirmNextGovernor();
         vm.stopPrank();
     }
 
