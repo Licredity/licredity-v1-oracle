@@ -36,9 +36,8 @@ interface IChainlinkOracleConfigs {
     event DeleteFungibleConfig(Fungible indexed fungible);
 
     /// @notice Emitted when the Uniswap V4 module is initialized
-    /// @param poolManager The pool manager
     /// @param positionManager The position manager
-    event InitializeUniswapV4Module(address indexed poolManager, address indexed positionManager);
+    event InitializeUniswapV4Module(address indexed positionManager);
 
     /// @notice Emitted when a Uniswap V4 pool is whitelisted or unwhitelisted
     /// @param poolId The pool ID
@@ -46,9 +45,8 @@ interface IChainlinkOracleConfigs {
     event SetUniswapV4Pool(PoolId indexed poolId, bool isWhitelisted);
 
     /// @notice Emitted when the Uniswap V3 module is initialized
-    /// @param poolFactory The pool factory
     /// @param positionManager The position manager
-    event InitializeUniswapV3Module(address indexed poolFactory, address indexed positionManager);
+    event InitializeUniswapV3Module(address indexed positionManager);
 
     /// @notice Emitted when a Uniswap V3 pool is whitelisted or unwhitelisted
     /// @param pool The pool address
@@ -79,10 +77,9 @@ interface IChainlinkOracleConfigs {
     function deleteFungibleConfig(Fungible fungible) external;
 
     /// @notice Initializes the Uniswap V4 module
-    /// @param poolManager The pool manager
     /// @param positionManager The position manager
     /// @dev Can only be called by the governor
-    function initializeUniswapV4Module(address poolManager, address positionManager) external;
+    function initializeUniswapV4Module(address positionManager) external;
 
     /// @notice Sets the whitelisted status of a Uniswap V4 pool
     /// @param poolId The pool ID
@@ -90,10 +87,9 @@ interface IChainlinkOracleConfigs {
     function setUniswapV4Pool(PoolId poolId, bool isWhitelisted) external;
 
     /// @notice Initializes the Uniswap V3 module
-    /// @param poolFactory The pool factory
     /// @param positionManager The position manager
     /// @dev Can only be called by the governor
-    function initializeUniswapV3Module(address poolFactory, address positionManager) external;
+    function initializeUniswapV3Module(address positionManager) external;
 
     /// @notice Sets the whitelisted status of a Uniswap V3 pool
     /// @param pool The pool address
