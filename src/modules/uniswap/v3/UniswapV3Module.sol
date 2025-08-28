@@ -40,12 +40,11 @@ library UniswapV3ModuleLibrary {
 
     /// @notice Initialize the module
     /// @param self The module to initialize
-    /// @param poolFactory The pool factory
     /// @param positionManager The position manager
-    function initialize(UniswapV3Module storage self, address poolFactory, address positionManager) internal {
-        require(address(self.poolFactory) == address(0), AlreadyInitialized());
+    function initialize(UniswapV3Module storage self, address positionManager) internal {
+        require(address(self.positionManager) == address(0), AlreadyInitialized());
 
-        self.poolFactory = poolFactory;
+        self.poolFactory = INonfungiblePositionManager(positionManager).factory();
         self.positionManager = INonfungiblePositionManager(positionManager);
     }
 

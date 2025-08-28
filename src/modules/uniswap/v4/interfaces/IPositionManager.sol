@@ -2,11 +2,15 @@
 pragma solidity >=0.8.0;
 
 import {PoolKey} from "@uniswap-v4-core/types/PoolKey.sol";
+import {IPoolManager} from "@uniswap-v4-core/interfaces/IPoolManager.sol";
 import {PositionInfo} from "../types/PositionInfo.sol";
 
 /// @dev Modified from
 /// https://github.com/Uniswap/v4-periphery/blob/main/src/interfaces/IPositionManager.sol
 interface IPositionManager {
+    /// @notice The Uniswap v4 PoolManager contract
+    function poolManager() external view returns (IPoolManager);
+
     /// @notice Returns the pool key and position info of a position
     /// @param tokenId the ERC721 tokenId
     /// @return poolKey the pool key of the position

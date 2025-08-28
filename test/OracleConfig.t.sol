@@ -9,6 +9,7 @@ import {AggregatorV3Interface} from "src/interfaces/external/AggregatorV3Interfa
 import {IChainlinkOracle} from "src/interfaces/IChainlinkOracle.sol";
 import {IChainlinkOracleConfigs} from "src/interfaces/IChainlinkOracleConfigs.sol";
 import {IPositionManager} from "src/modules/uniswap/v4/interfaces/IPositionManager.sol";
+import {UniswapV3NonfungiblePositionManagerMock} from "test/mock/UniswapV3PositionMock.sol";
 import {ChainlinkOracle} from "src/ChainlinkOracle.sol";
 import {FixedPointMath} from "src/libraries/FixedPointMath.sol";
 import {Deployers} from "./utils/Deployers.sol";
@@ -24,6 +25,8 @@ contract LicredityChainlinkOracleManageTest is Deployers {
     PoolId public mockPoolId;
     address public licredityFungible;
 
+    UniswapV3NonfungiblePositionManagerMock public v3PositionManagerMock;
+
     function setUp() public {
         deployLicredity();
         deployUniswapV4MockPool();
@@ -36,6 +39,7 @@ contract LicredityChainlinkOracleManageTest is Deployers {
         oracle = new ChainlinkOracle(address(licredity), address(this));
 
         licredityFungible = address(licredity);
+        v3PositionManagerMock = new UniswapV3NonfungiblePositionManagerMock();
     }
 
     function test_appointNextGovernor() public {
@@ -65,6 +69,19 @@ contract LicredityChainlinkOracleManageTest is Deployers {
         vm.expectEmit(true, false, false, false);
         emit IChainlinkOracleConfigs.ConfirmNextGovernor(address(this), address(1));
         oracle.confirmNextGovernor();
+        vm.stopPrank();
+    }
+
+    function test_updateMaxStaleness() public {
+        vm.expectEmit(true, false, false, false);
+        emit IChainlinkOracleConfigs.UpdateMaxStaleness(2 days);
+        oracle.updateMaxStaleness(2 days);
+    }
+
+    function test_updateMaxStaleness_notGovernor() public {
+        vm.startPrank(address(1));
+        vm.expectRevert(NotGovernor.selector);
+        oracle.updateMaxStaleness(2 days);
         vm.stopPrank();
     }
 
@@ -117,20 +134,17 @@ contract LicredityChainlinkOracleManageTest is Deployers {
     }
 
     function test_UniswapV4ModuleInit() public {
-        oracle.initializeUniswapV4Module(
-            address(0x000000000004444c5dc75cB358380D2e3dE08A90), address(0xbD216513d74C8cf14cf4747E6AaA6420FF64ee9e)
-        );
+        deployUniswapV4PositionManagerMock(IPoolManager(address(0x000000000004444c5dc75cB358380D2e3dE08A90)));
+        oracle.initializeUniswapV4Module(address(v4PositionManagerMock));
     }
 
     function test_UniswapV4ModuleInit_initalized() public {
-        oracle.initializeUniswapV4Module(
-            address(0x000000000004444c5dc75cB358380D2e3dE08A90), address(0xbD216513d74C8cf14cf4747E6AaA6420FF64ee9e)
-        );
+        deployUniswapV4PositionManagerMock(IPoolManager(address(0x000000000004444c5dc75cB358380D2e3dE08A90)));
+
+        oracle.initializeUniswapV4Module(address(v4PositionManagerMock));
 
         vm.expectRevert(AlreadyInitialized.selector);
-        oracle.initializeUniswapV4Module(
-            address(0x000000000004444c5dc75cB358380D2e3dE08A90), address(0xbD216513d74C8cf14cf4747E6AaA6420FF64ee9e)
-        );
+        oracle.initializeUniswapV4Module(address(v4PositionManagerMock));
     }
 
     function test_UniswapV4Module_update(PoolId poolId) public {
@@ -144,13 +158,10 @@ contract LicredityChainlinkOracleManageTest is Deployers {
     }
 
     function test_UniswapV3ModuleInit_initalized() public {
-        oracle.initializeUniswapV3Module(
-            address(0x1F98431c8aD98523631AE4a59f267346ea31F984), address(0xC36442b4a4522E871399CD717aBDD847Ab11FE88)
-        );
+        v3PositionManagerMock.setFactory(address(0x1F98431c8aD98523631AE4a59f267346ea31F984));
+        oracle.initializeUniswapV3Module(address(v3PositionManagerMock));
         vm.expectRevert(AlreadyInitialized.selector);
-        oracle.initializeUniswapV3Module(
-            address(0x1F98431c8aD98523631AE4a59f267346ea31F984), address(0xC36442b4a4522E871399CD717aBDD847Ab11FE88)
-        );
+        oracle.initializeUniswapV3Module(address(v3PositionManagerMock));
     }
 
     function test_UniswapV3Module_update(address pool) public {

@@ -47,6 +47,8 @@ contract ChainlinkOracle is IChainlinkOracle, ChainlinkOracleConfigs {
         currentTimeStamp = block.timestamp;
 
         (uint160 sqrtPriceX96,,,) = poolManager.getSlot0(poolId);
+        require(sqrtPriceX96 != 0);
+
         currentPriceX96 = (uint256(sqrtPriceX96) * uint256(sqrtPriceX96)) >> 96;
         lastPriceX96 = currentPriceX96;
         emaPrice = (currentPriceX96 * 1e18) >> 96;
@@ -93,9 +95,11 @@ contract ChainlinkOracle is IChainlinkOracle, ChainlinkOracleConfigs {
     function update() public {
         // get current price
         (uint160 sqrtPriceX96,,,) = poolManager.getSlot0(poolId);
+        // price from square root price
+        uint256 priceX96 = (uint256(sqrtPriceX96) * uint256(sqrtPriceX96)) >> 96;
 
         // short circuit if neither price nor timestamp has changed
-        if (sqrtPriceX96 == lastPriceX96 && currentTimeStamp == block.timestamp) {
+        if (priceX96 == lastPriceX96 && currentTimeStamp == block.timestamp) {
             return;
         }
 
@@ -109,9 +113,6 @@ contract ChainlinkOracle is IChainlinkOracle, ChainlinkOracleConfigs {
         // alpha = e ^ -(block.timestamp - lastUpdateTimeStamp)
         int256 power = ((int256(lastUpdateTimeStamp) - int256(block.timestamp)) << 96) / 600;
         uint256 alphaX96 = uint256(power.expWadX96());
-
-        // price from square root price
-        uint256 priceX96 = (uint256(sqrtPriceX96) * uint256(sqrtPriceX96)) >> 96;
 
         // cap cross block price movement to 1.5625%
         // If priceX96 > lastPriceX96 * (1 + 0.015625), priceX96 = lastPriceX96 * (1 + 0.015625)
@@ -150,8 +151,8 @@ contract ChainlinkOracle is IChainlinkOracle, ChainlinkOracleConfigs {
             }
 
             uint24 mrrPips = fungibleConfigs[fungible].mrrPips;
-            uint256 baseFeedPrice = fungibleConfigs[fungible].baseFeed.getPrice();
-            uint256 quoteFeedPrice = fungibleConfigs[fungible].quoteFeed.getPrice();
+            uint256 baseFeedPrice = fungibleConfigs[fungible].baseFeed.getPrice(maxStaleness);
+            uint256 quoteFeedPrice = fungibleConfigs[fungible].quoteFeed.getPrice(maxStaleness);
 
             // output value = scaleFactor * (input token amount * baseFeed * emaPrice) / quoteFeed
             // divide by 1e36 to account for 1) emaPrice has 1e18 decimals, and 2) scaleFactor is amplified by 1e18

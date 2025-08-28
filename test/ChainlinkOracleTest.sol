@@ -27,9 +27,10 @@ contract ChainlinkOracleTest is Deployers {
         licredity.setPoolManagerAndPoolId(address(v4Manager), mockPoolId);
         uniswapV4Mock.setPoolIdSqrtPriceX96(mockPoolId, 1 << 96);
 
+        deployUniswapV4PositionManagerMock(v4Manager);
         oracle = new ChainlinkOracle(address(licredity), address(this));
+        oracle.initializeUniswapV4Module(address(v4PositionManagerMock));
 
-        oracle.initializeUniswapV4Module(address(v4Manager), address(0));
         licredityFungible = address(licredity);
     }
 
@@ -166,6 +167,9 @@ contract ChainlinkOracleTest is Deployers {
     }
 
     function test_quoteFungibleEthUsd() public {
+        vm.warp(block.timestamp + 1 days);
+        ethUSD.setUpdatedAt(block.timestamp - 1);
+
         oracle.setFungibleConfig(Fungible.wrap(address(usd)), 100000, AggregatorV3Interface(address(0)), ethUSD);
         uniswapV4Mock.setPoolIdSqrtPriceX96(mockPoolId, 1 << 96);
 
@@ -182,6 +186,8 @@ contract ChainlinkOracleTest is Deployers {
     }
 
     function test_quoteFungibleBtcEth() public {
+        vm.warp(block.timestamp + 1 days);
+        btcETH.setUpdatedAt(block.timestamp - 1);
         oracle.setFungibleConfig(Fungible.wrap(address(btc)), 10000, btcETH, AggregatorV3Interface(address(0)));
         uniswapV4Mock.setPoolIdSqrtPriceX96(mockPoolId, 1 << 96);
 

@@ -33,6 +33,7 @@ abstract contract ChainlinkOracleConfigs is IChainlinkOracleConfigs {
 
     address internal governor;
     address internal nextGovernor;
+    uint256 internal maxStaleness = 1 days;
     mapping(Fungible => FungibleConfig) internal fungibleConfigs;
 
     modifier onlyGovernor() {
@@ -91,6 +92,12 @@ abstract contract ChainlinkOracleConfigs is IChainlinkOracleConfigs {
         }
     }
 
+    function updateMaxStaleness(uint256 newMaxStaleness) external onlyGovernor {
+        maxStaleness = newMaxStaleness;
+
+        emit UpdateMaxStaleness(maxStaleness);
+    }
+
     /// @inheritdoc IChainlinkOracleConfigs
     function setFungibleConfig(
         Fungible fungible,
@@ -118,10 +125,10 @@ abstract contract ChainlinkOracleConfigs is IChainlinkOracleConfigs {
     }
 
     /// @inheritdoc IChainlinkOracleConfigs
-    function initializeUniswapV3Module(address poolFactory, address positionManager) external onlyGovernor {
-        uniswapV3Module.initialize(poolFactory, positionManager);
+    function initializeUniswapV3Module(address positionManager) external onlyGovernor {
+        uniswapV3Module.initialize(positionManager);
 
-        emit InitializeUniswapV3Module(poolFactory, positionManager);
+        emit InitializeUniswapV3Module(positionManager);
     }
 
     /// @inheritdoc IChainlinkOracleConfigs
@@ -132,10 +139,10 @@ abstract contract ChainlinkOracleConfigs is IChainlinkOracleConfigs {
     }
 
     /// @inheritdoc IChainlinkOracleConfigs
-    function initializeUniswapV4Module(address poolManager, address positionManager) external onlyGovernor {
-        uniswapV4Module.initialize(poolManager, positionManager);
+    function initializeUniswapV4Module(address positionManager) external onlyGovernor {
+        uniswapV4Module.initialize(positionManager);
 
-        emit InitializeUniswapV4Module(poolManager, positionManager);
+        emit InitializeUniswapV4Module(positionManager);
     }
 
     /// @inheritdoc IChainlinkOracleConfigs
