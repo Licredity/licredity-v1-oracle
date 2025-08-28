@@ -149,8 +149,8 @@ contract ChainlinkOracle is IChainlinkOracle, ChainlinkOracleConfigs {
             }
 
             uint24 mrrPips = fungibleConfigs[fungible].mrrPips;
-            uint256 baseFeedPrice = fungibleConfigs[fungible].baseFeed.getPrice();
-            uint256 quoteFeedPrice = fungibleConfigs[fungible].quoteFeed.getPrice();
+            uint256 baseFeedPrice = fungibleConfigs[fungible].baseFeed.getPrice(maxStaleness);
+            uint256 quoteFeedPrice = fungibleConfigs[fungible].quoteFeed.getPrice(maxStaleness);
 
             // output value = scaleFactor * (input token amount * baseFeed * emaPrice) / quoteFeed
             // divide by 1e36 to account for 1) emaPrice has 1e18 decimals, and 2) scaleFactor is amplified by 1e18
