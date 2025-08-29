@@ -4,16 +4,13 @@ pragma solidity ^0.8.20;
 import {stdMath} from "@forge-std/StdMath.sol";
 import {Fungible} from "@licredity-v1-core/types/Fungible.sol";
 import {IPoolManager} from "@uniswap-v4-core/interfaces/IPoolManager.sol";
-import {PoolId} from "@uniswap-v4-core/types/PoolId.sol";
 import {AggregatorV3Interface} from "src/interfaces/external/AggregatorV3Interface.sol";
-import {IPositionManager} from "src/modules/uniswap/v4/interfaces/IPositionManager.sol";
 import {ChainlinkOracle} from "src/ChainlinkOracle.sol";
 import {Deployers} from "./utils/Deployers.sol";
 
 contract ChainlinkOracleTest is Deployers {
     error NotSupportedFungible();
 
-    PoolId public mockPoolId;
     address public licredityFungible;
     ChainlinkOracle public oracle;
 
@@ -23,9 +20,9 @@ contract ChainlinkOracleTest is Deployers {
         deployMockChainlinkOracle();
 
         IPoolManager v4Manager = IPoolManager(address(uniswapV4Mock));
-        mockPoolId = PoolId.wrap(bytes32(hex"01"));
-        licredity.setPoolManagerAndPoolId(address(v4Manager), mockPoolId);
-        uniswapV4Mock.setPoolIdSqrtPriceX96(mockPoolId, 1 << 96);
+
+        licredity.setPoolManagerAndPoolId(address(uniswapV4Mock), address(1));
+        uniswapV4Mock.setMockPoolIdSqrtPriceX96(address(licredity), address(1), 1 << 96);
 
         deployUniswapV4PositionManagerMock(v4Manager);
         oracle = new ChainlinkOracle(address(licredity), address(this));
@@ -57,12 +54,12 @@ contract ChainlinkOracleTest is Deployers {
         skip(1);
 
         // inter price in block will not update ema price
-        uniswapV4Mock.setPoolIdSqrtPriceX96(mockPoolId, interPrice);
+        uniswapV4Mock.setMockPoolIdSqrtPriceX96(address(licredity), address(1), interPrice);
         oracle.update();
 
         // update price = 10
         uint160 nowSqrtPrice = 250541448375047946302209916928;
-        uniswapV4Mock.setPoolIdSqrtPriceX96(mockPoolId, nowSqrtPrice);
+        uniswapV4Mock.setMockPoolIdSqrtPriceX96(address(licredity), address(1), nowSqrtPrice);
 
         oracle.update();
         uint256 emaPriceFromFFI = getOraclePriceFromFFI(1 << 96, nowSqrtPrice, 1);
@@ -74,7 +71,7 @@ contract ChainlinkOracleTest is Deployers {
         skip(6000);
 
         uint160 nowSqrtPrice = 79843750678802117044226490368; // update price = 1.0156
-        uniswapV4Mock.setPoolIdSqrtPriceX96(mockPoolId, nowSqrtPrice);
+        uniswapV4Mock.setMockPoolIdSqrtPriceX96(address(licredity), address(1), nowSqrtPrice);
         oracle.update();
 
         uint256 emaPriceFromFFI = getOraclePriceFromFFI(1 << 96, nowSqrtPrice, 6000);
@@ -84,7 +81,7 @@ contract ChainlinkOracleTest is Deployers {
     function test_oracleUpdate_normal() public asLicredity {
         skip(42);
         uint160 nowSqrtPrice = 79346915759800263220867891200; // update price = 1.003
-        uniswapV4Mock.setPoolIdSqrtPriceX96(mockPoolId, nowSqrtPrice);
+        uniswapV4Mock.setMockPoolIdSqrtPriceX96(address(licredity), address(1), nowSqrtPrice);
         oracle.update();
 
         uint256 emaPriceFromFFI = getOraclePriceFromFFI(1 << 96, nowSqrtPrice, 42);
@@ -95,7 +92,7 @@ contract ChainlinkOracleTest is Deployers {
         skip(42);
 
         uint160 nowSqrtPrice = 79346915759800263220867891200; // update price = 1.003
-        uniswapV4Mock.setPoolIdSqrtPriceX96(mockPoolId, nowSqrtPrice);
+        uniswapV4Mock.setMockPoolIdSqrtPriceX96(address(licredity), address(1), nowSqrtPrice);
         oracle.update();
 
         uint256 emaPriceFromFFI = getOraclePriceFromFFI(1 << 96, nowSqrtPrice, 42);
@@ -103,7 +100,7 @@ contract ChainlinkOracleTest is Deployers {
 
         skip(6000);
         nowSqrtPrice = 79843750678802117044226490368; // update price = 1.0156
-        uniswapV4Mock.setPoolIdSqrtPriceX96(mockPoolId, nowSqrtPrice);
+        uniswapV4Mock.setMockPoolIdSqrtPriceX96(address(licredity), address(1), nowSqrtPrice);
         oracle.update();
 
         emaPriceFromFFI = getOraclePriceFromFFI(oracle.lastPriceX96(), nowSqrtPrice, 6000);
@@ -123,7 +120,7 @@ contract ChainlinkOracleTest is Deployers {
             } else {
                 skip(data[i].skipTime);
             }
-            uniswapV4Mock.setPoolIdSqrtPriceX96(mockPoolId, data[i].nowPriceX96);
+            uniswapV4Mock.setMockPoolIdSqrtPriceX96(address(licredity), address(1), data[i].nowPriceX96);
             oracle.update();
             uint256 afterPrice = oracle.quotePrice();
 
@@ -171,7 +168,7 @@ contract ChainlinkOracleTest is Deployers {
         ethUSD.setUpdatedAt(block.timestamp - 1);
 
         oracle.setFungibleConfig(Fungible.wrap(address(usd)), 100000, AggregatorV3Interface(address(0)), ethUSD);
-        uniswapV4Mock.setPoolIdSqrtPriceX96(mockPoolId, 1 << 96);
+        uniswapV4Mock.setMockPoolIdSqrtPriceX96(address(licredity), address(1), 1 << 96);
 
         Fungible[] memory fungibles = new Fungible[](1);
         fungibles[0] = Fungible.wrap(address(usd));
@@ -189,7 +186,7 @@ contract ChainlinkOracleTest is Deployers {
         vm.warp(block.timestamp + 1 days);
         btcETH.setUpdatedAt(block.timestamp - 1);
         oracle.setFungibleConfig(Fungible.wrap(address(btc)), 10000, btcETH, AggregatorV3Interface(address(0)));
-        uniswapV4Mock.setPoolIdSqrtPriceX96(mockPoolId, 1 << 96);
+        uniswapV4Mock.setMockPoolIdSqrtPriceX96(address(licredity), address(1), 1 << 96);
 
         Fungible[] memory fungibles = new Fungible[](1);
         fungibles[0] = Fungible.wrap(address(btc));

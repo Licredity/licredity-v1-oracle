@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.20;
 
-import {NonFungible} from "@licredity-v1-core/types/NonFungible.sol";
 import {IHooks} from "@uniswap-v4-core/interfaces/IHooks.sol";
 import {IPoolManager} from "@uniswap-v4-core/interfaces/IPoolManager.sol";
 import {SafeCast} from "@uniswap-v4-core/libraries/SafeCast.sol";

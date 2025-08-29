@@ -6,9 +6,7 @@ import {Fungible} from "@licredity-v1-core/types/Fungible.sol";
 import {IPoolManager} from "@uniswap-v4-core/interfaces/IPoolManager.sol";
 import {PoolId} from "@uniswap-v4-core/types/PoolId.sol";
 import {AggregatorV3Interface} from "src/interfaces/external/AggregatorV3Interface.sol";
-import {IChainlinkOracle} from "src/interfaces/IChainlinkOracle.sol";
 import {IChainlinkOracleConfigs} from "src/interfaces/IChainlinkOracleConfigs.sol";
-import {IPositionManager} from "src/modules/uniswap/v4/interfaces/IPositionManager.sol";
 import {UniswapV3NonfungiblePositionManagerMock} from "test/mock/UniswapV3PositionMock.sol";
 import {ChainlinkOracle} from "src/ChainlinkOracle.sol";
 import {FixedPointMath} from "src/libraries/FixedPointMath.sol";
@@ -32,9 +30,8 @@ contract LicredityChainlinkOracleManageTest is Deployers {
         deployUniswapV4MockPool();
         deployMockChainlinkOracle();
 
-        mockPoolId = PoolId.wrap(bytes32(hex"01"));
-        licredity.setPoolManagerAndPoolId(address(uniswapV4Mock), mockPoolId);
-        uniswapV4Mock.setPoolIdSqrtPriceX96(mockPoolId, 1 << 96);
+        licredity.setPoolManagerAndPoolId(address(uniswapV4Mock), address(1));
+        uniswapV4Mock.setMockPoolIdSqrtPriceX96(address(licredity), address(1), 1 << 96);
 
         oracle = new ChainlinkOracle(address(licredity), address(this));
 
