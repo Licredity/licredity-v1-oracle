@@ -1,19 +1,16 @@
-# Licredity Oracle v1
+# Licredity v1 Oracle
 
-A sophisticated oracle system for the Licredity protocol that provides price information for fungible and non-fungible tokens by integrating Chainlink price feeds with Uniswap V4 pool data.
+A sophisticated oracle implementation for the Licredity protocol that provides reliable price feeds and asset valuation services. This oracle integrates Chainlink price feeds with Uniswap pool data to deliver accurate, manipulation-resistant pricing for both fungible and non-fungible tokens.
 
 ## Overview
 
-The Licredity Oracle combines multiple price sources, via Chainlink, to provide accurate and manipulation-resistant pricing for DeFi applications. It uses an exponential moving average (EMA) with price clamping to smooth out volatility while maintaining responsiveness to market changes.
+The Licredity v1 Oracle serves as the pricing backbone for the Licredity lending protocol, offering:
 
-### Key Features
-
-- **Chainlink Integration**: Leverages Chainlink's decentralized price feeds for reliable external price data
-- **Uniswap V4 Support**: Integrates with Uniswap V4 pools for LP position valuation
-- **Price Smoothing**: Uses EMA with 10-minute half-life to reduce volatility impact
-- **Manipulation Protection**: Implements price clamping (max 1.5625% change per block)
-- **Modular Architecture**: Extensible design for supporting additional protocols
-- **Governance Controls**: Configurable parameters with governor-controlled access
+- **Exponential Moving Average (EMA) Pricing**: Smooth price updates with built-in volatility dampening
+- **Multi-Asset Support**: Valuation for fungible tokens and Uniswap LP positions
+- **Chainlink Integration**: Reliable external price feeds with staleness protection
+- **Uniswap Integration**: Support for both v3 and v4 position valuation
+- **Governance Controls**: Secure configuration management with two-step governance transfers
 
 ### EMA Price
 
@@ -21,310 +18,253 @@ We used the following EMA price algorithm to calculate the average price:
 
 $$
 \begin{gather}
+\text{EMA} = \alpha \cdot \text{pirce} \times (1 - \alpha) \cdot \text{lastPirce} \\
+\\
 \alpha = e^{\text{power}} \\
+\\
 \text{power} = \frac{\text{lastUpdateTimeStamp} - \text{block.timestamp}}{600} \\
-\text{EMA} = \alpha \cdot \text{pirce} \times (1 - \alpha) \cdot \text{lastPirce}
 \end{gather}
 $$
 
-Note: To avoid price manipulation, the `price` used here is limited to the range of 0.015625 above and below `lastPrice`
+Note: To avoid price manipulation, the `price` used here is limited to the range of 1.5625% above and below `lastPrice`
+
+## Key Features
+
+### 🏛️ **Robust Price Oracle**
+
+- EMA-based price calculation with 600-second decay factor
+- Price movement capping (1.5625% per block) to prevent manipulation
+- Real-time updates from Uniswap v4 pools
+- Chainlink feed integration for external price data
+
+### 🔧 **Modular Architecture**
+
+- **UniswapV3Module**: Valuation of Uniswap v3 LP positions
+- **UniswapV4Module**: Valuation of Uniswap v4 LP positions
+- **ChainlinkFeedLibrary**: Standardized price feed interactions
+- **FixedPointMath**: High-precision mathematical operations
+
+### 🛡️ **Security & Governance**
+
+- Two-step governance pattern for secure admin transfers
+- Assembly-optimized contracts for gas efficiency
+- Comprehensive access controls and validation
+- Whitelisted pool system for position modules
+
+### 📊 **Asset Valuation**
+
+- Fungible token pricing with margin requirement calculations
+- Non-fungible position valuation through specialized modules
+- Multi-decimal precision handling
+- Configurable risk parameters per asset
 
 ## Architecture
 
-### Core Components
-
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    ChainlinkOracle                          │
-├─────────────────────────────────────────────────────────────┤
-│  • Main oracle contract implementing IOracle interface      │
-│  • EMA price calculation with manipulation protection       │
-│  • Fungible and non-fungible token valuation                │
-└─────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────┐
-│                ChainlinkOracleConfigs                       │
-├─────────────────────────────────────────────────────────────┤
-│  • Configuration management for fungible tokens             │
-│  • Chainlink feed management                                │
-│  • Uniswap V4 module integration                            │
-│  • Governor-controlled access                               │
-└─────────────────────────────────────────────────────────────┘
+ChainlinkOracle (Main Contract)
+├── ChainlinkOracleConfigs (Configuration Management)
+├── Libraries/
+│   ├── ChainlinkFeedLibrary (Feed Interactions)
+│   └── FixedPointMath (Mathematical Operations)
+└── Modules/
+    ├── UniswapV3Module (v3 Position Valuation)
+    └── UniswapV4Module (v4 Position Valuation)
 ```
 
-### Libraries
-
-- **FixedPointMath**: High-precision mathematical operations including exponential functions
-- **ChainlinkFeedLibrary**: Chainlink price feed interaction utilities
-- **UniswapV4Module**: Uniswap V4 position valuation and pool management
-
-## Getting Started
+## Quick Start
 
 ### Prerequisites
 
-- [Foundry](https://book.getfoundry.sh/getting-started/installation)
-- [UV](https://docs.astral.sh/uv/) (for Python scripts)
+- [Foundry](https://book.getfoundry.sh/getting-started/installation) installed
+- Node.js and npm (for Python scripts)
+- Access to RPC endpoints for target networks
 
 ### Installation
 
-1. Clone the repository:
-
 ```bash
+# Clone the repository
 git clone <repository-url>
 cd licredity-v1-oracle
-```
 
-2. Install dependencies:
-
-```bash
+# Install dependencies
 forge soldeer install
-```
 
-3. Set up Python environment (optional, for testing scripts):
-
-```bash
-uv sync
-```
-
-### Building
-
-```bash
+# Build contracts
 forge build
 ```
 
 ### Testing
 
-Run all tests:
-
 ```bash
+# Run all tests
 forge test
+
+# Run with detailed output
+forge test -vv
+
+# Run specific test contract
+forge test --match-contract ChainlinkOracleTest
+
+# Generate gas report
+forge test --gas-report
 ```
 
-Run specific test file:
+### Deployment
+
+1. Create a `.env` file with your configuration:
 
 ```bash
-forge test --match-path test/ChainlinkOracleTest.sol
+# Deployer Configuration
+PRIVATE_KEY=your_private_key_here
+
+# Network Configuration
+Ethereum_RPC_URL=https://eth-mainnet.g.alchemy.com/v2/YOUR-API-KEY
+Base_RPC_URL=https://base-mainnet.g.alchemy.com/v2/YOUR-API-KEY
+
+# Contract Addresses
+Ethereum_GOVERNOR=0x...
+Ethereum_LICREDITY_CORE=0x...
+Base_GOVERNOR=0x...
+Base_LICREDITY_CORE=0x...
 ```
 
-Run tests with detailed output:
+2. Deploy to your target network:
 
 ```bash
-forge test -vvv
-```
+# Dry run deployment
+./deploy.sh Ethereum
 
-### Formatting
-
-```bash
-forge fmt
+# Actual deployment
+./deploy.sh Ethereum --deploy
 ```
 
 ## Configuration
 
-### Environment Variables
+### Fungible Token Setup
 
-Set up your environment variables in `.env`:
-
-```bash
-ETH_RPC_URL=https://your-ethereum-rpc-url
-```
-
-### Foundry Configuration
-
-The project uses `foundry.toml` for configuration with the following key settings:
-
-- **Solidity Version**: 0.8.30
-- **Optimizer**: Enabled with `via_ir = true`
-- **FFI**: Enabled for Python script integration
-- **Dependencies**: Managed via Soldeer
-
-## Usage
-
-### Deploying the Oracle
+Configure supported tokens through the governance interface:
 
 ```solidity
-// Deploy the oracle with Licredity address and governor
-ChainlinkOracle oracle = new ChainlinkOracle(
-    address(licredityProtocol),
-    address(governor)
-);
-
-// Initialize Uniswap V4 module
-oracle.initializeUniswapV4Module(
-    address(poolManager),
-    address(positionManager)
-);
-```
-
-### Configuring Fungible Tokens
-
-```solidity
-// Configure a fungible token with Chainlink feeds
+// Set configuration for a new fungible token
 oracle.setFungibleConfig(
-    Fungible.wrap(tokenAddress),
-    100000, // 10% margin requirement (in pips)
-    AggregatorV3Interface(baseFeedAddress),
-    AggregatorV3Interface(quoteFeedAddress)
+    fungible,           // Token contract
+    mrrPips,           // Margin requirement ratio (in pips)
+    baseFeed,          // Chainlink price feed for base asset
+    quoteFeed          // Chainlink price feed for quote asset
 );
 ```
 
-### Getting Price Quotes
+### Uniswap Module Setup
+
+Initialize and configure Uniswap modules:
+
+```solidity
+// Initialize Uniswap v4 module
+oracle.initializeUniswapV4Module(positionManagerAddress);
+
+// Whitelist a pool for v4 positions
+oracle.setUniswapV4Pool(poolId, true);
+
+// Initialize Uniswap v3 module
+oracle.initializeUniswapV3Module(nonfungiblePositionManagerAddress);
+
+// Whitelist a pool for v3 positions
+oracle.setUniswapV3Pool(poolAddress, true);
+```
+
+## Usage Examples
+
+### Price Queries
 
 ```solidity
 // Get current EMA price
 uint256 price = oracle.quotePrice();
 
-// Quote multiple fungible tokens
-Fungible[] memory tokens = new Fungible[](2);
-uint256[] memory amounts = new uint256[](2);
-// ... populate arrays ...
+// Value multiple fungible tokens
+Fungible[] memory tokens = [token1, token2];
+uint256[] memory amounts = [amount1, amount2];
+(uint256 totalValue, uint256 marginRequirement) = oracle.quoteFungibles(tokens, amounts);
 
-(uint256 value, uint256 marginRequirement) = oracle.quoteFungibles(tokens, amounts);
+// Value Uniswap positions
+NonFungible[] memory positions = [position1, position2];
+(uint256 totalValue, uint256 marginRequirement) = oracle.quoteNonFungibles(positions);
 ```
 
-### Uniswap V4 Position Valuation
+### Oracle Updates
 
 ```solidity
-// Whitelist a Uniswap V4 pool
-oracle.setUniswapV4Pool(poolId, true);
-
-// Quote non-fungible tokens (LP positions)
-NonFungible[] memory positions = new NonFungible[](1);
-// ... populate positions ...
-
-(uint256 value, uint256 marginRequirement) = oracle.quoteNonFungibles(positions);
-```
-
-## Price Update Mechanism
-
-The oracle implements a sophisticated price update system:
-
-1. **Pool Price Fetching**: Gets `sqrtPriceX96` from Uniswap V4 pool
-2. **Price Clamping**: Limits price movement to 1.5625% per block
-3. **EMA Calculation**: Applies exponential moving average with 10-minute half-life
-4. **Alpha Calculation**: `alpha = e^(-(currentTime - lastUpdateTime) / 600)`
-5. **Price Smoothing**: `newEmaPrice = alpha * currentPrice + (1 - alpha) * lastPrice`
-
-## Testing
-
-### Test Structure
-
-- **Unit Tests**: Individual component testing in `test/`
-- **Integration Tests**: Full system testing scenarios
-- **Python Scripts**: Mathematical validation in `test/python-scripts/`
-- **Fuzz Testing**: Property-based testing for edge cases
-
-### Key Test Files
-
-- `ChainlinkOracleTest.sol`: Core oracle functionality tests
-- `FixedPointMath.t.sol`: Mathematical library tests
-- `UniswapV4Position.t.sol`: Position valuation tests
-- `ema_update.py`: Python script for EMA validation
-
-### Running Specific Tests
-
-```bash
-# Test oracle price updates
-forge test --match-test test_oracleUpdate
-
-# Test fungible token pricing
-forge test --match-test test_quoteFungible
-
-# Fuzz testing
-forge test --match-test test_oracleUpdate_fuzz
+// Manually trigger price update (also happens automatically during quotes)
+oracle.update();
 ```
 
 ## Governance
 
-The oracle system uses a governor-controlled configuration model:
+The oracle uses a secure two-step governance pattern:
 
-### Governor Functions
+```solidity
+// Step 1: Current governor appoints next governor
+oracle.appointNextGovernor(newGovernorAddress);
 
-- `updateGovernor(address)`: Transfer governance to new address
-- `setFungibleConfig(...)`: Configure fungible token parameters
-- `deleteFungibleConfig(...)`: Remove fungible token configuration
-- `initializeUniswapV4Module(...)`: Initialize Uniswap V4 integration
-- `setUniswapV4Pool(...)`: Whitelist/blacklist pools
+// Step 2: New governor confirms the transfer
+oracle.confirmNextGovernor(); // Must be called by new governor
+```
 
-### Access Control
+## Network Support
 
-All configuration changes require governor approval. Consider using:
+The oracle is designed for multi-chain deployment and currently supports:
 
-- Multi-signature wallets
-- Timelock contracts
-- DAO governance systems
+- **Ethereum Mainnet**
+- **Base**
+- **Unichain** (upcoming)
 
-## Development
+Each network requires specific configuration for:
 
-### Adding New Modules
+- Fungible and non-fungible parameters
+- Chainlink price feeds
+- Uniswap pool contracts
+- Licredity core integration
 
-To add support for new protocols:
+## Security Considerations
 
-1. Create a new module in `src/modules/`
-2. Implement the required interface
-3. Update the oracle to dispatch to the new module
-4. Add corresponding tests
-
-### Mathematical Operations
-
-The system uses fixed-point arithmetic for precision:
-
-- Prices are stored in X96 format
-- EMA calculations use signed integers
-- Margin requirements use pips (1 pip = 0.0001%)
-
-## API Reference
-
-### Core Functions
-
-#### `quotePrice() → uint256`
-
-Returns the current EMA price.
-
-#### `quoteFungibles(Fungible[], uint256[]) → (uint256, uint256)`
-
-Returns total value and margin requirement for fungible tokens.
-
-#### `quoteNonFungibles(NonFungible[]) → (uint256, uint256)`
-
-Returns total value and margin requirement for non-fungible tokens.
-
-#### `update()`
-
-Updates the oracle price from the underlying Uniswap V4 pool.
-
-### Configuration Functions
-
-#### `setFungibleConfig(Fungible, uint24, AggregatorV3Interface, AggregatorV3Interface)`
-
-Configures a fungible token with margin requirements and price feeds.
-
-#### `setUniswapV4Pool(PoolId, bool)`
-
-Sets the whitelist status of a Uniswap V4 pool.
+- **Price Manipulation Protection**: EMA smoothing and movement caps prevent sudden price shocks
+- **Feed Staleness Protection**: Automatic rejection of outdated Chainlink data
+- **Access Controls**: Comprehensive permission system for administrative functions
+- **Assembly Optimization**: Gas-efficient implementations with proper safety checks
 
 ## Contributing
 
 1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests for new functionality
-5. Ensure all tests pass
-6. Submit a pull request
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Make your changes and add tests
+4. Ensure all tests pass (`forge test`)
+5. Format your code (`forge fmt`)
+6. Commit your changes (`git commit -m 'Add amazing feature'`)
+7. Push to the branch (`git push origin feature/amazing-feature`)
+8. Open a Pull Request
 
-### Code Style
+## Testing
 
-- Follow the existing Solidity style guidelines
-- Use meaningful variable names
-- Add comprehensive comments
-- Include proper error handling
+The project includes comprehensive tests covering:
+
+- **Unit Tests**: Individual contract functionality
+- **Integration Tests**: Cross-module interactions
+- **Mathematical Verification**: EMA calculations using Python FFI
+- **Governance Tests**: Permission and access control validation
+- **Mock Contracts**: Isolated testing environments
+
+Run specific test categories:
+
+```bash
+# Test oracle pricing logic
+forge test --match-path test/ChainlinkOracleTest.sol
+
+# Test mathematical libraries
+forge test --match-path test/libraries/
+
+# Test Uniswap modules
+forge test --match-path test/modules/
+```
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Disclaimer
-
-This software is provided as-is without any warranties. Use at your own risk. Always conduct thorough testing and auditing before deploying to production.
-
----
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
