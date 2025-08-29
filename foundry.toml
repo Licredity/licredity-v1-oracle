@@ -19,5 +19,5 @@ uniswap-v4-core = "4"
 licredity-v1-core = { version = "1.0.0", git = "git@github.com:Licredity/licredity-v1-core.git", rev = "aa29f9fddf4eaa9d7aa0c4f765b786614c9bea2b" }
 
 [rpc_endpoints]
-ETH = "${ETH_RPC_URL}"
+ETH = "${Ethereum_RPC_URL}"
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
