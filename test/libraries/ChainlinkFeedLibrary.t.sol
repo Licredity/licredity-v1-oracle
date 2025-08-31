@@ -5,8 +5,6 @@ import {Test} from "@forge-std/Test.sol";
 import {ChainlinkFeedLibrary} from "src/libraries/ChainlinkFeedLibrary.sol";
 import {AggregatorV3Interface} from "src/interfaces/external/AggregatorV3Interface.sol";
 
-import {console} from "@forge-std/console.sol";
-
 contract ChainlinkFeedLibraryWrapper {
     function getPrice(AggregatorV3Interface feed, uint256 maxStaleness) external view returns (uint256 price) {
         return ChainlinkFeedLibrary.getPrice(feed, maxStaleness);

@@ -6,11 +6,13 @@ import {NonFungible} from "@licredity-v1-core/types/NonFungible.sol";
 import {IPoolManager} from "@uniswap-v4-core/interfaces/IPoolManager.sol";
 import {PoolId} from "@uniswap-v4-core/types/PoolId.sol";
 import {AggregatorV3Interface} from "src/interfaces/external/AggregatorV3Interface.sol";
-import {IPositionManager} from "src/modules/uniswap/v4/interfaces/IPositionManager.sol";
 import {ChainlinkOracle} from "src/ChainlinkOracle.sol";
 import {Deployers} from "./utils/Deployers.sol";
+import {StateLibrary} from "@uniswap-v4-core/libraries/StateLibrary.sol";
 
 contract NonFungibleOracleTest is Deployers {
+    using StateLibrary for IPoolManager;
+
     ChainlinkOracle public oracle;
     PoolId public ETHUSDCPoolId;
     AggregatorV3Interface public constant ZERO_ORACLE = AggregatorV3Interface(address(0));
@@ -28,8 +30,10 @@ contract NonFungibleOracleTest is Deployers {
 
         address uniswapV3PositionManager = address(0xC36442b4a4522E871399CD717aBDD847Ab11FE88);
 
-        uniswapV4Mock.setPoolIdSqrtPriceX96(ETHUSDCPoolId, 1 << 96);
-        licredity.setPoolManagerAndPoolId(address(uniswapV4Mock), ETHUSDCPoolId);
+        // (uint160 initSqrtPriceX96,,,) = v4Manager.getSlot0(ETHUSDCPoolId);
+        licredity.setPoolManagerAndPoolId(address(uniswapV4Mock), address(1));
+        uniswapV4Mock.setMockPoolIdSqrtPriceX96(address(licredity), address(1), 1 << 96);
+
         oracle = new ChainlinkOracle(address(licredity), address(this));
 
         oracle.initializeUniswapV4Module(address(0xbD216513d74C8cf14cf4747E6AaA6420FF64ee9e));
