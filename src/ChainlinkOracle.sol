@@ -24,8 +24,10 @@ contract ChainlinkOracle is IChainlinkOracle, ChainlinkOracleConfigs {
     using StateLibrary for IPoolManager;
     using ChainlinkFeedLibrary for AggregatorV3Interface;
 
+    uint24 private constant FEE = 100;
+    int24 private constant TICK_SPACING = 1;
     uint256 private constant POOL_MANAGER_OFFSET = 5;
-    uint256 public constant CURRENCY0_OFFSET = 13;
+    uint256 private constant CURRENCY0_OFFSET = 13;
 
     uint256 public emaPrice;
     uint256 public currentPriceX96;
@@ -48,8 +50,8 @@ contract ChainlinkOracle is IChainlinkOracle, ChainlinkOracleConfigs {
             let memptr := mload(0x40)
             mstore(memptr, currency0) // currency0
             mstore(add(memptr, 0x20), licredity) // currency1
-            mstore(add(memptr, 0x40), 100) // fee
-            mstore(add(memptr, 0x60), 1) // tickSpacing
+            mstore(add(memptr, 0x40), FEE) // fee
+            mstore(add(memptr, 0x60), TICK_SPACING) // tickSpacing
             mstore(add(memptr, 0x80), licredity) // hooks
 
             _poolId := keccak256(memptr, 0xa0)
