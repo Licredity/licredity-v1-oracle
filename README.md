@@ -141,7 +141,7 @@ Governance-controlled parameters include:
 ## Audit
 
 ### External Audits
-- [**Cyfrin Audits**](/docs/audits/Cyfrin%202025-09-01.pdf)
+- [**Cyfrin Audits**](/docs/audits/Cyfrin%202025-09-01.pdf) (2025-09)
 
 ## Contributing
 
