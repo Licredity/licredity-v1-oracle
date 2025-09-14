@@ -55,13 +55,13 @@ contract ChainlinkOracleTest is Deployers {
 
         // inter price in block will not update ema price
         uniswapV4Mock.setMockPoolIdSqrtPriceX96(address(licredity), address(1), interPrice);
-        oracle.update();
+        oracle.updatePrice();
 
         // update price = 10
         uint160 nowSqrtPrice = 250541448375047946302209916928;
         uniswapV4Mock.setMockPoolIdSqrtPriceX96(address(licredity), address(1), nowSqrtPrice);
 
-        oracle.update();
+        oracle.updatePrice();
         uint256 emaPriceFromFFI = getOraclePriceFromFFI(1 << 96, nowSqrtPrice, 1);
 
         assertApproxEqAbsDecimal(oracle.quotePrice(), emaPriceFromFFI, 1e4, 18);
@@ -72,7 +72,7 @@ contract ChainlinkOracleTest is Deployers {
 
         uint160 nowSqrtPrice = 79843750678802117044226490368; // update price = 1.0156
         uniswapV4Mock.setMockPoolIdSqrtPriceX96(address(licredity), address(1), nowSqrtPrice);
-        oracle.update();
+        oracle.updatePrice();
 
         uint256 emaPriceFromFFI = getOraclePriceFromFFI(1 << 96, nowSqrtPrice, 6000);
         assertApproxEqAbsDecimal(oracle.quotePrice(), emaPriceFromFFI, 1e4, 18);
@@ -82,7 +82,7 @@ contract ChainlinkOracleTest is Deployers {
         skip(42);
         uint160 nowSqrtPrice = 79346915759800263220867891200; // update price = 1.003
         uniswapV4Mock.setMockPoolIdSqrtPriceX96(address(licredity), address(1), nowSqrtPrice);
-        oracle.update();
+        oracle.updatePrice();
 
         uint256 emaPriceFromFFI = getOraclePriceFromFFI(1 << 96, nowSqrtPrice, 42);
         assertApproxEqAbsDecimal(oracle.quotePrice(), emaPriceFromFFI, 1e4, 18);
@@ -93,7 +93,7 @@ contract ChainlinkOracleTest is Deployers {
 
         uint160 nowSqrtPrice = 79346915759800263220867891200; // update price = 1.003
         uniswapV4Mock.setMockPoolIdSqrtPriceX96(address(licredity), address(1), nowSqrtPrice);
-        oracle.update();
+        oracle.updatePrice();
 
         uint256 emaPriceFromFFI = getOraclePriceFromFFI(1 << 96, nowSqrtPrice, 42);
         assertApproxEqAbsDecimal(oracle.quotePrice(), emaPriceFromFFI, 1e4, 18);
@@ -101,7 +101,7 @@ contract ChainlinkOracleTest is Deployers {
         skip(6000);
         nowSqrtPrice = 79843750678802117044226490368; // update price = 1.0156
         uniswapV4Mock.setMockPoolIdSqrtPriceX96(address(licredity), address(1), nowSqrtPrice);
-        oracle.update();
+        oracle.updatePrice();
 
         emaPriceFromFFI = getOraclePriceFromFFI(oracle.lastPriceX96(), nowSqrtPrice, 6000);
         assertApproxEqAbsDecimal(oracle.quotePrice(), emaPriceFromFFI, 1e4, 18);
@@ -121,7 +121,7 @@ contract ChainlinkOracleTest is Deployers {
                 skip(data[i].skipTime);
             }
             uniswapV4Mock.setMockPoolIdSqrtPriceX96(address(licredity), address(1), data[i].nowPriceX96);
-            oracle.update();
+            oracle.updatePrice();
             uint256 afterPrice = oracle.quotePrice();
 
             uint256 delta = stdMath.percentDelta(beforePrice, afterPrice);

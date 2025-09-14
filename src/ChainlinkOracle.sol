@@ -83,7 +83,7 @@ contract ChainlinkOracle is IChainlinkOracle, ChainlinkOracleConfigs {
         returns (uint256 value, uint256 marginRequirement)
     {
         // update price as time may have passed since last update
-        update();
+        updatePrice();
 
         for (uint256 i = 0; i < fungibles.length; i++) {
             (uint256 _value, uint256 _marginRequirement) = _quoteFungible(fungibles[i], amounts[i]);
@@ -99,7 +99,7 @@ contract ChainlinkOracle is IChainlinkOracle, ChainlinkOracleConfigs {
         returns (uint256 value, uint256 marginRequirement)
     {
         // update price as time may have passed since last update
-        update();
+        updatePrice();
 
         for (uint256 i = 0; i < nonFungibles.length; i++) {
             (uint256 _value, uint256 _marginRequirement) = _quoteNonFungible(nonFungibles[i]);
@@ -110,7 +110,7 @@ contract ChainlinkOracle is IChainlinkOracle, ChainlinkOracleConfigs {
     }
 
     /// @inheritdoc IOracle
-    function update() public {
+    function updatePrice() public {
         // get current price
         (uint160 sqrtPriceX96,,,) = poolManager.getSlot0(poolId);
         // price from square root price
