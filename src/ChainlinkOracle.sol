@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.30;
 
-import {Licredity} from "@licredity-v1-core/Licredity.sol";
+import {ILicredity} from "@licredity-v1-core/interfaces/ILicredity.sol";
 import {IOracle} from "@licredity-v1-core/interfaces/IOracle.sol";
 import {FullMath} from "@licredity-v1-core/libraries/FullMath.sol";
 import {PipsMath} from "@licredity-v1-core/libraries/PipsMath.sol";
@@ -35,9 +35,9 @@ contract ChainlinkOracle is IChainlinkOracle, ChainlinkOracleConfigs {
     Fungible internal immutable debtFungible;
 
     constructor(address licredity, address _governor) ChainlinkOracleConfigs(_governor) {
-        poolManager = Licredity(payable(licredity)).poolManager();
+        poolManager = ILicredity(licredity).poolManager();
 
-        poolId = Licredity(payable(licredity)).poolId();
+        poolId = ILicredity(licredity).poolId();
 
         debtFungible = Fungible.wrap(licredity);
 

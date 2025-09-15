@@ -16,7 +16,7 @@ remappings = [
 [dependencies]
 forge-std = "1.9.7"
 uniswap-v4-core = "4"
-licredity-v1-core = { version = "1.0.0", git = "git@github.com:Licredity/licredity-v1-core.git", rev = "8d5e6fdaeb5a78b742828b889da43dd6e4e39c65" }
+licredity-v1-core = { version = "1.0.0", git = "git@github.com:Licredity/licredity-v1-core.git", rev = "27e43324a78879719ced0f51f65462a729bf3a29" }
 
 [rpc_endpoints]
 ETH = "${Ethereum_RPC_URL}"
