@@ -24,11 +24,6 @@ contract ChainlinkOracle is IChainlinkOracle, ChainlinkOracleConfigs {
     using StateLibrary for IPoolManager;
     using ChainlinkFeedLibrary for AggregatorV3Interface;
 
-    uint24 private constant FEE = 100;
-    int24 private constant TICK_SPACING = 1;
-    uint256 private constant POOL_MANAGER_OFFSET = 5;
-    uint256 private constant CURRENCY0_OFFSET = 13;
-
     uint256 public emaPrice;
     uint256 public currentPriceX96;
     uint256 public currentTimeStamp;
@@ -40,25 +35,10 @@ contract ChainlinkOracle is IChainlinkOracle, ChainlinkOracleConfigs {
     Fungible internal immutable debtFungible;
 
     constructor(address licredity, address _governor) ChainlinkOracleConfigs(_governor) {
-        poolManager =
-            IPoolManager(address(uint160(uint256(ILicredity(licredity).extsload(bytes32(POOL_MANAGER_OFFSET))))));
+        poolManager = ILicredity(licredity).poolManager();
 
-        bytes32 currency0 = ILicredity(licredity).extsload(bytes32(CURRENCY0_OFFSET));
+        poolId = ILicredity(licredity).poolId();
 
-        PoolId _poolId;
-        assembly ("memory-safe") {
-            let memptr := mload(0x40)
-            mstore(memptr, currency0) // currency0
-            mstore(add(memptr, 0x20), licredity) // currency1
-            mstore(add(memptr, 0x40), FEE) // fee
-            mstore(add(memptr, 0x60), TICK_SPACING) // tickSpacing
-            mstore(add(memptr, 0x80), licredity) // hooks
-
-            _poolId := keccak256(memptr, 0xa0)
-            mstore(0x40, add(memptr, 0xa0)) // update free memory pointer
-        }
-
-        poolId = _poolId;
         debtFungible = Fungible.wrap(licredity);
 
         lastUpdateTimeStamp = block.timestamp;
@@ -83,7 +63,7 @@ contract ChainlinkOracle is IChainlinkOracle, ChainlinkOracleConfigs {
         returns (uint256 value, uint256 marginRequirement)
     {
         // update price as time may have passed since last update
-        update();
+        updatePrice();
 
         for (uint256 i = 0; i < fungibles.length; i++) {
             (uint256 _value, uint256 _marginRequirement) = _quoteFungible(fungibles[i], amounts[i]);
@@ -99,7 +79,7 @@ contract ChainlinkOracle is IChainlinkOracle, ChainlinkOracleConfigs {
         returns (uint256 value, uint256 marginRequirement)
     {
         // update price as time may have passed since last update
-        update();
+        updatePrice();
 
         for (uint256 i = 0; i < nonFungibles.length; i++) {
             (uint256 _value, uint256 _marginRequirement) = _quoteNonFungible(nonFungibles[i]);
@@ -110,7 +90,7 @@ contract ChainlinkOracle is IChainlinkOracle, ChainlinkOracleConfigs {
     }
 
     /// @inheritdoc IOracle
-    function update() public {
+    function updatePrice() public {
         // get current price
         (uint160 sqrtPriceX96,,,) = poolManager.getSlot0(poolId);
         // price from square root price

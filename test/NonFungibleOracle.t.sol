@@ -31,8 +31,8 @@ contract NonFungibleOracleTest is Deployers {
         address uniswapV3PositionManager = address(0xC36442b4a4522E871399CD717aBDD847Ab11FE88);
 
         // (uint160 initSqrtPriceX96,,,) = v4Manager.getSlot0(ETHUSDCPoolId);
-        licredity.setPoolManagerAndPoolId(address(uniswapV4Mock), address(1));
-        uniswapV4Mock.setMockPoolIdSqrtPriceX96(address(licredity), address(1), 1 << 96);
+        licredity.setPoolManagerAndPoolId(address(uniswapV4Mock), ETHUSDCPoolId);
+        uniswapV4Mock.setMockPoolIdSqrtPriceX96(address(licredity), ETHUSDCPoolId, 1 << 96);
 
         oracle = new ChainlinkOracle(address(licredity), address(this));
 
